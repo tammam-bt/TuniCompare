@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TuniCompare</title>
+  </head>
+  <body>
+    <header class="Header">
+      <nav class="Navbar">
+        <div class="Logodiv">
+          <a href="index.html" class="aLogo">
+            <img
+              class="Logo"
+              src="../Resources/Logo.png"
+              alt="TuniCompare Logo"
+            />
+          </a>
+        </div>
+        <ul class="navlist">
+          <li><a href="#shop" class="navitem">Shop</a></li>
+          <li><a href="#about" class="navitem">About</a></li>
+          <li><a href="#contact" class="navitem">Contact</a></li>
+        </ul>
+      </nav>
+    </header>
+    <section class="hero">
+      <div class="hero-text">
+        <p class="hero-description">
+          Your product comparison platform for Tunisia. Compare prices,
+          features, and reviews to make informed shopping decisions.
+        </p>
+        <a href="#shop" class="hero-btn">Start Shopping</a>
+      </div>
+      <div class="hero-img-div">
+        <img
+          src="../Resources/Home-Hero-Image.jpg"
+          alt="Hero Image"
+          class="hero-img"
+        />
+      </div>
+    </section>
+    <section class="products" id="shop">
+      <h2 class="featured-products-title">Featured Products</h2>
+      <ul id="featured-list" class="featured-list">
+        <!-- Product items will be dynamically inserted here -->
+        <script src="featured-list.js"></script>
+      </ul>
+    </section>
+    <section class="Shop" id="shop">
+      <h2 class="Shop-title">Shop</h2>
+      <ul id="product-list" class="shop-list">
+        <li id="laptop" class="shop-item">
+          <a href="../Shop/Laptop/Laptop.html" class="shop-item-link">
+            <img
+              src="../Resources/Laptop-Hero.png"
+              alt="Laptop"
+              class="shop-hero-img"
+            />
+            <h3 class="shop-product-title">Gaming Laptops</h3>
+          </a>
+        </li>
+        <li id="desktop" class="shop-item">
+          <a href="../Shop/Desktop/Desktop.html" class="shop-item-link">
+            <img
+              src="../Resources/Desktop-Hero.png"
+              alt="Desktop"
+              class="shop-hero-img"
+            />
+            <h3 class="shop-product-title">Gaming Desktops</h3>
+          </a>
+        </li>
+        <li id="screen" class="shop-item">
+          <a href="../Shop/Screen/Screen.html" class="shop-item-link">
+            <img
+              src="../Resources/Screen-Hero.png"
+              alt="Screen"
+              class="shop-hero-img"
+            />
+            <h3 class="shop-product-title">Gaming Screens</h3>
+          </a>
+        </li>
+      </ul>
+    </section>
+    <footer class="Footer">
+      <p class="footer-text">&copy; 2025 TuniCompare. All rights reserved.</p>
+      <ul class="footer-links">
+        <li><a href="#privacy" class="footer-link">Privacy Policy</a></li>
+        <li><a href="#terms" class="footer-link">Terms of Service</a></li>
+        <li><a href="#contact" class="footer-link">Contact Us</a></li>
+      </ul>
+    </footer>
+  </body>
+</html>

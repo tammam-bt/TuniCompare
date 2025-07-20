@@ -1,0 +1,52 @@
+[
+  {
+    "id": 101,
+    "product_name": "Wireless Ergonomic Mouse",
+    "price_usd": 25.99
+  },
+  {
+    "id": 102,
+    "product_name": "Mechanical Gaming Keyboard",
+    "price_usd": 79.95
+  },
+  {
+    "id": 103,
+    "product_name": "USB-C Hub 7-in-1",
+    "price_usd": 35.00
+  },
+  {
+    "id": 104,
+    "product_name": "Noise-Cancelling Headphones",
+    "price_usd": 129.50
+  },
+  {
+    "id": 105,
+    "product_name": "Portable SSD 1TB",
+    "price_usd": 99.99
+  },
+  {
+    "id": 106,
+    "product_name": "HD Webcam 1080p",
+    "price_usd": 45.75
+  },
+  {
+    "id": 107,
+    "product_name": "Smart Watch Fitness Tracker",
+    "price_usd": 60.00
+  },
+  {
+    "id": 108,
+    "product_name": "LED Desk Lamp with Wireless Charging",
+    "price_usd": 55.20
+  },
+  {
+    "id": 109,
+    "product_name": "Bluetooth Speaker Mini",
+    "price_usd": 19.99
+  },
+  {
+    "id": 110,
+    "product_name": "Tablet Stand Adjustable",
+    "price_usd": 15.00
+  }
+]
