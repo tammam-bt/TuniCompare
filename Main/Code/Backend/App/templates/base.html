@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    {% block stylesheets %} {% endblock %}
     <meta charset="UTF-8" />
-    <title>TuniCompare Gaming Desktops</title>
-    <link rel="stylesheet" href="style.css" />
-    <!-- ...existing code... -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% block title %}{% endblock %}
   </head>
   <body>
     <header class="Header">
       <nav class="Navbar">
         <div class="Logodiv">
-          <a href="../../Home/index.html" class="aLogo"><img
+          <a href="{{ url_for('home') }}" class="aLogo">
+            <img
               class="Logo"
-              src="../../Resources/Logo.png"
+              src="{{ url_for('static', filename='Resources/Logo.png') }}"
               alt="TuniCompare Logo"
-            /><a href="#home"></a>
+            />
+          </a>
         </div>
         <ul class="navlist">
           <li><a href="#shop" class="navitem">Shop</a></li>
@@ -25,26 +27,20 @@
     </header>
     <section class="hero">
       <div class="hero-text">
-        <a href="#shop" class="hero-btn">Gaming Desktops</a>
+        {% block hero_description %} {% endblock %}
       </div>
       <div class="hero-img-div">
-        <img src="../../Resources/Desktop-Big-Hero.png" alt="Hero Image" class="hero-img"/>
+        {% block hero_image %} {% endblock %}
       </div>
     </section>
-    <section class="products" id="shop">
-      <ul id="product-list" class="product-list">
-        <script src="product-list.js"></script>
-      </ul>
-    </section>
+    {% block products %} {% endblock %}
     <footer class="Footer">
-            <p class="footer-text">
-        &copy; 2025 TuniCompare. All rights reserved.
-      </p>
+      <p class="footer-text">&copy; 2025 TuniCompare. All rights reserved.</p>
       <ul class="footer-links">
         <li><a href="#privacy" class="footer-link">Privacy Policy</a></li>
         <li><a href="#terms" class="footer-link">Terms of Service</a></li>
         <li><a href="#contact" class="footer-link">Contact Us</a></li>
       </ul>
-    </footer>
+      </footer>
   </body>
 </html>

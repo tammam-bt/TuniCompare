@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block stylesheets %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/shop.css') }}" />
+{% endblock %}
+{% block title %}
+<title>TuniCompare Gaming Screens</title>
+{% endblock %}
+
+{% block hero_description %}
+  <a href="#shop" class="hero-btn">Gaming Screens</a>
+{% endblock %}
+
+{% block hero_image %}
+  <img src="{{ url_for('static', filename='Resources/Screen-Big-Hero.png') }}" alt="Hero Image" class="hero-img" />
+{% endblock %}
+
+
+{% block products %}
+  <section class="products" id="shop">
+      <ul id="product-list" class="product-list">
+        <script>
+          const productListJsonUrl = "{{ url_for('static', filename='Resources/JSON/laptops.json') }}";
+          const MytekLogo = "{{ url_for('static', filename='Resources/Mytek.png') }}";
+          const TunisianetLogo = "{{ url_for('static', filename='Resources/Tunisianet.png') }}";
+          const ScoopGamingLogo = "{{ url_for('static', filename='Resources/ScoopGaming.png') }}";
+        </script>
+        <script src="{{ url_for('static', filename='JS/product-list.js') }}"></script>
+      </ul>
+    </section>
+{% endblock %}    
