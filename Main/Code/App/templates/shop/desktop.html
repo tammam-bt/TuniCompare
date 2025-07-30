@@ -19,13 +19,17 @@
 {% block products %}
   <section class="products" id="shop">
       <ul id="product-list" class="product-list">
+        
+      </ul>
+  </section>
+{% endblock %}    
+
+{% block scripts %}
         <script>
-          const productListJsonUrl = "{{ url_for('static', filename='Resources/JSON/laptops.json') }}";
+          const product_type = "pc_bureau_gamer";
           const MytekLogo = "{{ url_for('static', filename='Resources/Mytek.png') }}";
           const TunisianetLogo = "{{ url_for('static', filename='Resources/Tunisianet.png') }}";
           const ScoopGamingLogo = "{{ url_for('static', filename='Resources/ScoopGaming.png') }}";
         </script>
         <script src="{{ url_for('static', filename='JS/product-list.js') }}"></script>
-      </ul>
-    </section>
-{% endblock %}    
+{% endblock %}

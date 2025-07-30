@@ -65,13 +65,13 @@ def get_specs_pc_portablegamer(text):
     cpu_description = cpu_match.group(1).strip() if cpu_match else "Unknown"
     if "intel" in cpu_description:
         cpu_brand = "Intel"
-        cpu_model = re.search(r'(?:\s*)(i[3579]\s*\d+[a-z])', cpu_description, re.IGNORECASE).group(1) if re.search(r'(?:\s*)(i[3579]\s*\d+[a-z])', cpu_description, re.IGNORECASE) else "Unknown"  # Extract Intel CPU model
+        cpu_model = re.search(r'(?:\s*)(i[3579]\s*-\d+[a-z])', cpu_description, re.IGNORECASE).group(1) if re.search(r'(?:\s*)(i[3579]\s*-\d+[a-z])', cpu_description, re.IGNORECASE) else "Unknown"  # Extract Intel CPU model
         cpu_cores = re.search(r'(\d+)\s*core', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*core', cpu_description, re.IGNORECASE) else "Unknown" # Extract number of cores
         cpu_frequency= re.search(r'(?:up\s*to\s*)(\d+\.\d+|\d+)\s*ghz', cpu_description, re.IGNORECASE).group(1) if re.search(r'(?:up\s*to\s*)(\d+\.\d+|\d+)\s*ghz', cpu_description, re.IGNORECASE) else "Unknown"   # Extract frequency
         cache = re.search(r'(\d+)\s*mb', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d)+\s*mb', cpu_description, re.IGNORECASE) else "Unknown"  # Extract cache
     elif "amd" in cpu_description:
         cpu_brand = "AMD"
-        cpu_model = re.search(r'(?:\s*)(ryzen\s*\d+\s*?\d+\s*?\w+)', cpu_description, re.IGNORECASE).group(1) if re.search(r'(?:\s*)(ryzen\s*\d+\s*?\d+\s*?\w+)', cpu_description, re.IGNORECASE) else "Unknown"  # Extract AMD Ryzen CPU model
+        cpu_model = "ryzen" + re.search(r'(?:ryzen\s*)(\d+\s*?\d+\s*?\w+)', cpu_description, re.IGNORECASE).group(1).replace(" ", "-") if re.search(r'(?:\s*)(ryzen\s*\d+\s*?\d+\s*?\w+)', cpu_description, re.IGNORECASE) else "Unknown"  # Extract AMD Ryzen CPU model
         cpu_cores = re.search(r'(\d+)\s*core', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*core', cpu_description, re.IGNORECASE) else "Unknown"  # Extract number of cores
         cpu_frequency = re.search(r'(?:up\s*to\s*)(\d+\.\d+|\d+)\s*ghz', cpu_description, re.IGNORECASE).group(1) if re.search(r'(?:up\s*to\s*)(\d+\.\d+|\d+)\s*ghz', cpu_description, re.IGNORECASE) else "Unknown"  # Extract frequency
         cache = re.search(r'(\d+)\s*mb', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*mb', cpu_description, re.IGNORECASE) else "Unknown"
@@ -81,7 +81,7 @@ def get_specs_pc_portablegamer(text):
         cpu_cores = "Unknown"
         cpu_frequency = "Unknown"
         cache = "Unknown"
-    print("CPU Brand: " + Brand)
+    print("CPU Brand: " + cpu_brand)
     print("CPU Model: " + cpu_model)
     print("CPU Cores: " + cpu_cores)
     print("CPU Frequency: " + cpu_frequency)
@@ -106,7 +106,7 @@ def get_specs_pc_portablegamer(text):
     print(f"GPU Match: {gpu_match.group(1) if gpu_match else 'None'}")
     gpu_desc = gpu_match.group(1).strip() if gpu_match else "Unknown"
     gpu_brand = re.search(r'(nvidia|amd|intel)', gpu_desc, re.IGNORECASE).group(1) if re.search(r'(nvidia|amd|intel)', gpu_desc, re.IGNORECASE) else "Unknown"  # Extract GPU brand
-    gpu_model = re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE).group(1) if re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE) else "Unknown" # Extract GPU model
+    gpu_model = re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE).group(1).replace(" ", "-") if re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE) else "Unknown" # Extract GPU model
     gpu_memory = re.search(r'(\d+)\s*gb', gpu_desc, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*gb', gpu_desc, re.IGNORECASE) else "Unknown"  # Extract GPU memory
     print(f"GPU Brand: {gpu_brand}")
     print(f"GPU Model: {gpu_model}")
@@ -171,7 +171,7 @@ def get_specs_pc_portablegamer(text):
             "Refresh Rate": screen_refresh_rate
         }
     }
-
+  
 def get_specs_de_bureau_gamer(text):
     # Extract CPU
     cpu_match = re.search(r'(?:cpu)\s*(.*?)(?:,?\s*(?:ram|mémoire ram|disque dur|ssd|graphique|nvidia|ecran|$))', text, re.IGNORECASE)
@@ -185,7 +185,7 @@ def get_specs_de_bureau_gamer(text):
         cache = re.search(r'(\d+)\s*mb', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d)+\s*mb', cpu_description, re.IGNORECASE) else "Unknown"  # Extract cache
     elif "amd" in cpu_match.group(1).strip():
         cpu_brand = "AMD"
-        cpu_model = re.search(r'(?:\s*)(ryzen\s*\d+\s*?\d+\s*?\w+)', cpu_description, re.IGNORECASE).group(1) if re.search(r'(?:\s*)(ryzen\s*\d+)', cpu_description, re.IGNORECASE) else "Unknown"  # Extract AMD Ryzen CPU model
+        cpu_model = "ryzen" + re.search(r'(?:\s*ryzen\s*)(\d+\s*?\d+\s*?\w+)', cpu_description, re.IGNORECASE).group(1).replace(" ", "-") if re.search(r'(?:\s*)(ryzen\s*\d+)', cpu_description, re.IGNORECASE) else "Unknown"  # Extract AMD Ryzen CPU model
         cpu_cores = re.search(r'(\d+)\s*core', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*core', cpu_description, re.IGNORECASE) else "Unknown"  # Extract number of cores
         cpu_frequency = re.search(r'(?:up\s*to\s*)(\d+\.\d+|\d+)\s*ghz', cpu_description, re.IGNORECASE).group(1) if re.search(r'(?:up\s*to\s*)(\d+\.\d+|\d+)\s*ghz', cpu_description, re.IGNORECASE) else "Unknown"  # Extract frequency
         cache = re.search(r'(\d+)\s*mb', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*mb', cpu_description, re.IGNORECASE) else "Unknown"
@@ -213,7 +213,7 @@ def get_specs_de_bureau_gamer(text):
     print(f"GPU Match: {gpu_match.group(1) if gpu_match else 'None'}")
     gpu_desc = gpu_match.group(1).strip() if gpu_match else "Unknown"
     gpu_brand = re.search(r'(nvidia|amd|intel)', gpu_desc, re.IGNORECASE).group(1) if re.search(r'(nvidia|amd|intel)', gpu_desc, re.IGNORECASE) else "Unknown"  # Extract GPU brand
-    gpu_model = re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE).group(1) if re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE) else "Unknown" # Extract GPU model
+    gpu_model = re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE).group(1).replace(" ", "-") if re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE) else "Unknown" # Extract GPU model
     gpu_memory = re.search(r'(\d+)\s*gb', gpu_desc, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*gb', gpu_desc, re.IGNORECASE) else "Unknown"  # Extract GPU memory
     return {
         "CPU": {
@@ -238,16 +238,25 @@ def get_specs_de_bureau_gamer(text):
             "Memory": gpu_memory
         },
     }
-
+ 
 def get_specs_ecran(text):
     brand = re.search(r'(?<=ecran\s)(.*?)(?:,)', text)
     Size = re.search(r'(\d{1,2}(\.\d+)?)\s*\"', text)
-    resolution = re.search(r'\b(?:fhd|hd|qhd|uhd|(\d{3,4}x\d{3,4}))\b', text)  
-    refresh_rate = re.search(r'\d{2,3}\s*hz', text)
-    response_time = re.search(r'\d+\s*ms', text)
-    contrast = re.search(r'\d+:\d+', text)
-    brightness = re.search(r'(?:luminosite:\s*)(.*?)(?:,)', text)
-    viewing_angle = re.search(r'\d+°h\s*/\s*\d+°v', text)
+    resolution_match = re.search(r'\b(?:fhd|hd|qhd|uhd|(\d{3,4}x\d{3,4}))\b', text)  
+    resolution = resolution_match.group(1) if resolution_match else "Unknown"
+    if resolution_match and resolution_match.group(1) == "1920x1080":
+        resolution = "fhd"
+    elif resolution_match and resolution_match.group(1) == "2560x1440":
+        resolution = "qhd"
+    elif resolution_match and resolution_match.group(1) == "3840x2160":
+        resolution = "uhd"
+    elif resolution_match and resolution_match.group(1) == "1280x720":
+        resolution = "hd"
+    refresh_rate = re.search(r'(\d+)(?:\s*hz)', text)
+    response_time = re.search(r'(\d+)(?:\s*ms)', text)
+    contrast = re.search(r'(\d{3,4}:\d+)', text)
+    brightness = re.search(r'(?:luminosite:\s*)(.*?)(?:\s*cd|\s*nits)', text)
+    viewing_angle = re.search(r'(\d+°h\s*/\s*\d+°v|(?:angles de vision:\s*)(.*?)(?:\s*ports))', text)
     curvature = re.search(r'\d{3,4}r', text)
     connectors = re.findall(r'\b(?:hdmi|displayport|usb type-c|audio)\b', text, re.IGNORECASE)
     audio_ports = re.search(r'ports?\s*audio|sortie de ligne audio|sortie audio', text, re.IGNORECASE)
@@ -257,25 +266,25 @@ def get_specs_ecran(text):
     panel_type = re.search(r'(\bva\b|\btn\b|\boled\b|\bamoled\b|\bips\b)', text, re.IGNORECASE)
     
     return {
-        "Brand" : brand.group(1) if brand else "Unknown Brand",
-        "Size": Size.group(1) if Size else "Unknown Size",
-        "Resolution": resolution.group(0) if resolution else "Unknown Resolution",
-        "Refresh Rate": refresh_rate.group(0) if refresh_rate else "Unknown Refresh Rate",
-        "Response Time": response_time.group(0) if response_time else "Unknown Response Time",
-        "Contrast": contrast.group(0) if contrast else "Unknown Contrast",
-        "Brightness": brightness.group(1) if brightness else "Unknown Brightness",
-        "Viewing Angle": viewing_angle.group(0) if viewing_angle else "Unknown Viewing Angle",
-        "Curvature": curvature.group(0) if curvature else "Unknown Curvature",
+        "Brand" : brand.group(1) if brand else "Unknown",
+        "Size": Size.group(1) if Size else "Unknown",
+        "Resolution": resolution if resolution_match else "Unknown",
+        "Refresh Rate": refresh_rate.group(1) if refresh_rate else "Unknown",
+        "Response Time": response_time.group(1) if response_time else "Unknown",
+        "Contrast": contrast.group(0) if contrast else "Unknown",
+        "Brightness": brightness.group(1) if brightness else "Unknown",
+        "Viewing Angle": viewing_angle.group(0) if viewing_angle else "Unknown",
+        "Curvature": curvature.group(0) if curvature else "Unknown",
         "Connectors": list(set(connectors)) if connectors else ["Unknown Connectors"],
         "Audio Ports": "Yes" if audio_ports else "No",
         "Flicker Free": "Yes" if flicker_free else "No",
         "Blue Light Filter": "Yes" if blue_light_filter else "No",
         "Adaptive Sync": "Yes" if adaptive_sync else "No",
-        "Panel Type": panel_type.group(1) if panel_type else "Unknown Panel Type",
+        "Panel Type": panel_type.group(1) if panel_type else "Unknown",
         
     }
     # Extract Screen
-    
+   
 # Function to fetch product details from a given URL
 # and return a list of dictionaries containing product information
 def get_product_details_pc_portablegamer(l):        
@@ -477,7 +486,6 @@ def get_product_details_ecran_gamer(l):
         try:
             print(f"Fetching page {i}...")
             print(l + str(i))
-            time.sleep(1)
             html_text = requests.get(l + str(i)).text
             soup = BeautifulSoup(html_text, "lxml")
             products = soup.find_all("div", class_="thumbnail-container")
@@ -540,8 +548,8 @@ def get_product_details_ecran_gamer(l):
                 else:
                     print(f"Duplicate product found: {title} - {price}")
                 print(productdict)    
-        except:
-            print(f"An error occurred while processing page {i}.")
+        except Exception as e:
+            print(f"An error occurred while processing page {i}: {e}")
             pass
         if products == []:
             print("End of pages reached.")
@@ -550,119 +558,120 @@ def get_product_details_ecran_gamer(l):
     print(i)   
     return product_list
            
-#Tunisianet Urls
-ScoopGaming = {     "Pc Portable Gamer":"https://www.scoopgaming.com.tn/62-pc-portable-gamer?page=",
-                    "Pc de Bureau Gamer" : "https://www.scoopgaming.com.tn/63-pc-de-bureau-gamer?page=",
-                    "Ecran Gamer" : "https://www.scoopgaming.com.tn/58-ecrans-gaming?page=",}
+def main():    
+    #Tunisianet Urls
+    ScoopGaming = {     "Pc Portable Gamer":"https://www.scoopgaming.com.tn/62-pc-portable-gamer?page=",
+                        "Pc de Bureau Gamer" : "https://www.scoopgaming.com.tn/63-pc-de-bureau-gamer?page=",
+                        "Ecran Gamer" : "https://www.scoopgaming.com.tn/58-ecrans-gaming?page=",}
 
-# Create a CSV file for each category and write the product details
-for item in ScoopGaming:
-    with open(f"Main\Products\Scoop Gaming\{item}.csv", "w", newline='', encoding="utf-8") as file:
-        if item == "Pc Portable Gamer":
-            writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
-                                                      "Brand", "Model",
-                                                      "CPU Brand", "CPU Model", "CPU Cores", "CPU Frequency", "CPU Cache",
-                                                      "RAM Size", "RAM Type",
-                                                      "Storage Size","Storage Type","Storage Unit",
-                                                      "GPU Brand", "GPU Model", "GPU Memory",
-                                                      "Wi-Fi", "Bluetooth", "Keyboard",  "Ports",
-                                                      "Screen Type", "Screen Size", "Screen Resolution", "Screen Refresh Rate",
-                                                      ])
-            writer.writeheader()
-            products = get_product_details_pc_portablegamer(ScoopGaming[item])
-            for product in products:
-                writer.writerow({
-                    "Title": product["title"],
-                    "Price": product["price"],
-                    "Link": product["link"],
-                    "Image": product["image"],
-                    "Availability": product["availability"],
-                    "ID": product["ID"],
-                    "Brand": product["Brand"],
-                    "Model": product["Model"],
-                    "CPU Brand": product["CPU"]["Brand"],
-                    "CPU Model": product["CPU"]["Model"],
-                    "CPU Cores": product["CPU"]["Cores"],
-                    "CPU Frequency": product["CPU"]["Frequency"],
-                    "CPU Cache": product["CPU"]["Cache"],
-                    "RAM Size": product["RAM"]["Size"],
-                    "RAM Type": product["RAM"]["Type"],
-                    "Storage Size": product["Storage"]["Size"],
-                    "Storage Type": product["Storage"]["Type"],
-                    "Storage Unit": product["Storage"]["Unit"],
-                    "GPU Brand": product["GPU"]["Brand"],
-                    "GPU Model": product["GPU"]["Model"],
-                    "GPU Memory": product["GPU"]["Memory"],
-                    "Wi-Fi": product["Wi-Fi"],
-                    "Bluetooth": product["Bluetooth"],
-                    "Keyboard": product["Keyboard"],
-                    "Ports": product["Ports"],
-                    "Screen Type": product["Screen"]["Type"],
-                    "Screen Size": product["Screen"]["Size"],
-                    "Screen Resolution": product["Screen"]["Resolution"],
-                    "Screen Refresh Rate": product["Screen"]["Refresh Rate"],})
-        if item == "Pc de Bureau Gamer":
-            writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
-                                                      "CPU Brand", "CPU Model", "CPU Cores", "CPU Frequency", "CPU Cache",
-                                                      "RAM Size", "RAM Type",
-                                                      "Storage Size","Storage Type","Storage Unit",
-                                                      "GPU Brand", "GPU Model", "GPU Memory",
-                                                      ])
-            writer.writeheader()
-            products = get_product_details_pc_de_bureau_gamer(ScoopGaming[item])
-            for product in products:      
-                writer.writerow({
-                    "Title": product["title"],
-                    "Price": product["price"],
-                    "Link": product["link"],
-                    "Image": product["image"],
-                    "Availability": product["availability"],
-                    "ID": product["ID"],
-                    "CPU Brand": product["CPU"]["Brand"],
-                    "CPU Model": product["CPU"]["Model"],
-                    "CPU Cores": product["CPU"]["Cores"],
-                    "CPU Frequency": product["CPU"]["Frequency"],
-                    "CPU Cache": product["CPU"]["Cache"],
-                    "RAM Size": product["RAM"]["Size"],
-                    "RAM Type": product["RAM"]["Type"],
-                    "Storage Size": product["Storage"]["Size"],
-                    "Storage Type": product["Storage"]["Type"],
-                    "Storage Unit": product["Storage"]["Unit"],
-                    "GPU Brand": product["GPU"]["Brand"],
-                    "GPU Model": product["GPU"]["Model"],
-                    "GPU Memory": product["GPU"]["Memory"]
-                })
-        if item == "Ecran Gamer": 
-            writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
-                                                      "Brand", "Size", "Resolution", "Refresh Rate", "Response Time",
-                                                      "Contrast", "Brightness", "Viewing Angle", "Curvature",
-                                                      "Connectors", "Audio Ports", "Flicker Free", "Blue Light Filter",
-                                                      "Adaptive Sync", "Panel Type",
-                                                      ])
-            writer.writeheader()  
-            products = get_product_details_ecran_gamer(ScoopGaming[item])
-            for product in products:
-                writer.writerow({
-                    "Title": product["title"],
-                    "Price": product["price"],
-                    "Link": product["link"],
-                    "Image": product["image"],
-                    "Availability": product["availability"],
-                    "ID": product["ID"],
-                    "Brand": product["Brand"],
-                    "Size": product["Size"],
-                    "Resolution": product["Resolution"],
-                    "Refresh Rate": product["Refresh Rate"],
-                    "Response Time": product["Response Time"],
-                    "Contrast": product["Contrast"],
-                    "Brightness": product["Brightness"],
-                    "Viewing Angle": product["Viewing Angle"],
-                    "Curvature": product["Curvature"],
-                    "Connectors": product["Connectors"],
-                    "Audio Ports": product["Audio Ports"],
-                    "Flicker Free": product["Flicker Free"],
-                    "Blue Light Filter": product["Blue Light Filter"],
-                    "Adaptive Sync": product["Adaptive Sync"],
-                    "Panel Type": product["Panel Type"]
-                })        
-    print(f"Finished writing {item} products to CSV file.")
+    # Create a CSV file for each category and write the product details
+    for item in ScoopGaming:
+        with open(f"Main\Products\Scoop Gaming\{item}.csv", "w", newline='', encoding="utf-8") as file:
+            if item == "Pc Portable Gamer":
+                writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
+                                                        "Brand", "Model",
+                                                        "CPU Brand", "CPU Model", "CPU Cores", "CPU Frequency", "CPU Cache",
+                                                        "RAM Size", "RAM Type",
+                                                        "Storage Size","Storage Type","Storage Unit",
+                                                        "GPU Brand", "GPU Model", "GPU Memory",
+                                                        "Wi-Fi", "Bluetooth", "Keyboard",  "Ports",
+                                                        "Screen Type", "Screen Size", "Screen Resolution", "Screen Refresh Rate",
+                                                        ])
+                writer.writeheader()
+                products = get_product_details_pc_portablegamer(ScoopGaming[item])
+                for product in products:
+                    writer.writerow({
+                        "Title": product["title"],
+                        "Price": product["price"],
+                        "Link": product["link"],
+                        "Image": product["image"],
+                        "Availability": product["availability"],
+                        "ID": product["ID"],
+                        "Brand": product["Brand"],
+                        "Model": product["Model"],
+                        "CPU Brand": product["CPU"]["Brand"],
+                        "CPU Model": product["CPU"]["Model"],
+                        "CPU Cores": product["CPU"]["Cores"],
+                        "CPU Frequency": product["CPU"]["Frequency"],
+                        "CPU Cache": product["CPU"]["Cache"],
+                        "RAM Size": product["RAM"]["Size"],
+                        "RAM Type": product["RAM"]["Type"],
+                        "Storage Size": product["Storage"]["Size"],
+                        "Storage Type": product["Storage"]["Type"],
+                        "Storage Unit": product["Storage"]["Unit"],
+                        "GPU Brand": product["GPU"]["Brand"],
+                        "GPU Model": product["GPU"]["Model"],
+                        "GPU Memory": product["GPU"]["Memory"],
+                        "Wi-Fi": product["Wi-Fi"],
+                        "Bluetooth": product["Bluetooth"],
+                        "Keyboard": product["Keyboard"],
+                        "Ports": product["Ports"],
+                        "Screen Type": product["Screen"]["Type"],
+                        "Screen Size": product["Screen"]["Size"],
+                        "Screen Resolution": product["Screen"]["Resolution"],
+                        "Screen Refresh Rate": product["Screen"]["Refresh Rate"],})
+            if item == "Pc de Bureau Gamer":
+                writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
+                                                        "CPU Brand", "CPU Model", "CPU Cores", "CPU Frequency", "CPU Cache",
+                                                        "RAM Size", "RAM Type",
+                                                        "Storage Size","Storage Type","Storage Unit",
+                                                        "GPU Brand", "GPU Model", "GPU Memory",
+                                                        ])
+                writer.writeheader()
+                products = get_product_details_pc_de_bureau_gamer(ScoopGaming[item])
+                for product in products:      
+                    writer.writerow({
+                        "Title": product["title"],
+                        "Price": product["price"],
+                        "Link": product["link"],
+                        "Image": product["image"],
+                        "Availability": product["availability"],
+                        "ID": product["ID"],
+                        "CPU Brand": product["CPU"]["Brand"],
+                        "CPU Model": product["CPU"]["Model"],
+                        "CPU Cores": product["CPU"]["Cores"],
+                        "CPU Frequency": product["CPU"]["Frequency"],
+                        "CPU Cache": product["CPU"]["Cache"],
+                        "RAM Size": product["RAM"]["Size"],
+                        "RAM Type": product["RAM"]["Type"],
+                        "Storage Size": product["Storage"]["Size"],
+                        "Storage Type": product["Storage"]["Type"],
+                        "Storage Unit": product["Storage"]["Unit"],
+                        "GPU Brand": product["GPU"]["Brand"],
+                        "GPU Model": product["GPU"]["Model"],
+                        "GPU Memory": product["GPU"]["Memory"]
+                    })
+            if item == "Ecran Gamer": 
+                writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
+                                                        "Brand", "Size", "Resolution", "Refresh Rate", "Response Time",
+                                                        "Contrast", "Brightness", "Viewing Angle", "Curvature",
+                                                        "Connectors", "Audio Ports", "Flicker Free", "Blue Light Filter",
+                                                        "Adaptive Sync", "Panel Type",
+                                                        ])
+                writer.writeheader()  
+                products = get_product_details_ecran_gamer(ScoopGaming[item])
+                for product in products:
+                    writer.writerow({
+                        "Title": product["title"],
+                        "Price": product["price"],
+                        "Link": product["link"],
+                        "Image": product["image"],
+                        "Availability": product["availability"],
+                        "ID": product["ID"],
+                        "Brand": product["Brand"],
+                        "Size": product["Size"],
+                        "Resolution": product["Resolution"],
+                        "Refresh Rate": product["Refresh Rate"],
+                        "Response Time": product["Response Time"],
+                        "Contrast": product["Contrast"],
+                        "Brightness": product["Brightness"],
+                        "Viewing Angle": product["Viewing Angle"],
+                        "Curvature": product["Curvature"],
+                        "Connectors": product["Connectors"],
+                        "Audio Ports": product["Audio Ports"],
+                        "Flicker Free": product["Flicker Free"],
+                        "Blue Light Filter": product["Blue Light Filter"],
+                        "Adaptive Sync": product["Adaptive Sync"],
+                        "Panel Type": product["Panel Type"]
+                    })        
+        print(f"Finished writing {item} products to CSV file.")

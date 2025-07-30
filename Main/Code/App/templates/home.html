@@ -25,7 +25,9 @@
       <ul id="featured-list" class="featured-list">
         <!-- Product items will be dynamically inserted here -->
         <script>
-          const laptopsJsonUrl = "{{ url_for('static', filename='Resources/JSON/laptops.json') }}";
+          const MytekLogo = "{{ url_for('static', filename='Resources/Mytek.png') }}";
+          const TunisianetLogo = "{{ url_for('static', filename='Resources/Tunisianet.png') }}";
+          const ScoopGamingLogo = "{{ url_for('static', filename='Resources/ScoopGaming.png') }}";
         </script>
         <script src="{{ url_for('static', filename='JS/home-featured-list.js') }}"></script>
       </ul>

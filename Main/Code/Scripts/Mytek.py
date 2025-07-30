@@ -49,6 +49,7 @@ def normalize_text_ecran(s):
     s = s.replace("ecran gamer", "ecran")  # Normalize Ecran Gamer
     s = s.replace("résolution", "resolution")  # Normalize Résolution
     s = s.replace("luminosité", "luminosite")  # Normalize Luminosité
+    s = s.replace("plat", "flat")  # Normalize Plat
     s = s.replace("è", "e")  # Normalize è to e
     return s
 
@@ -170,7 +171,7 @@ def get_specs_de_bureau_gamer(text):
         cache = re.search(r'(\d+)\s*mb', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d)+\s*mb', cpu_description, re.IGNORECASE) else "Unknown"  # Extract cache
     elif "amd" in cpu_match.group(1).strip():
         cpu_brand = "AMD"
-        cpu_model = re.search(r'(?:\s*)(ryzen\s*\d+\s*?\d+\s*?\w+)', cpu_description, re.IGNORECASE).group(1) if re.search(r'(?:\s*)(ryzen\s*\d+)', cpu_description, re.IGNORECASE) else "Unknown"  # Extract AMD Ryzen CPU model
+        cpu_model = "ryzen" + re.search(r'(?:ryzen\s*)(\d+\s*?\d+\s*?\w+)', cpu_description, re.IGNORECASE).group(1).replace(" ", "-") if re.search(r'(?:\s*)(ryzen\s*\d+)', cpu_description, re.IGNORECASE) else "Unknown"  # Extract AMD Ryzen CPU model
         cpu_cores = re.search(r'(\d+)\s*core', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*core', cpu_description, re.IGNORECASE) else "Unknown"  # Extract number of cores
         cpu_frequency = re.search(r'(?:up\s*to\s*)(\d+\.\d+|\d+)\s*ghz', cpu_description, re.IGNORECASE).group(1) if re.search(r'(?:up\s*to\s*)(\d+\.\d+|\d+)\s*ghz', cpu_description, re.IGNORECASE) else "Unknown"  # Extract frequency
         cache = re.search(r'(\d+)\s*mb', cpu_description, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*mb', cpu_description, re.IGNORECASE) else "Unknown"
@@ -182,7 +183,7 @@ def get_specs_de_bureau_gamer(text):
         cache = "Unknown"
     
     #Extract RAM
-    ram_size = re.search(r'(?:mémoire)\s*(\d+)\s*gb', text, re.IGNORECASE).group(1) if re.search(r'(?:mémoire)\s*(\d+)\s*gb', text, re.IGNORECASE) else "Unknown"  # Extract RAM size
+    ram_size = re.search(r'(?:ram)\s*(\d+)\s*gb', text, re.IGNORECASE).group(1) if re.search(r'(?:ram)\s*(\d+)\s*gb', text, re.IGNORECASE) else "Unknown"  # Extract RAM size
     ram_ddr = re.search(r'(ddr\d)', text, re.IGNORECASE).group(1) if re.search(r'(ddr\d)', text, re.IGNORECASE) else "Unknown"  # Extract RAM type
     
     # Extract Storage
@@ -198,7 +199,12 @@ def get_specs_de_bureau_gamer(text):
     print(f"GPU Match: {gpu_match.group(1) if gpu_match else 'None'}")
     gpu_desc = gpu_match.group(1).strip() if gpu_match else "Unknown"
     gpu_brand = re.search(r'(nvidia|amd|intel)', gpu_desc, re.IGNORECASE).group(1) if re.search(r'(nvidia|amd|intel)', gpu_desc, re.IGNORECASE) else "Unknown"  # Extract GPU brand
-    gpu_model = re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE).group(1) if re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE) else "Unknown" # Extract GPU model
+    if gpu_brand == "Unknown":
+        if re.search(r'(rtx\s*\d+|gtx\s*\d+)', gpu_desc, re.IGNORECASE):
+            gpu_brand = "nvidia"
+        if re.search(r'(radeon\s*\w+)', gpu_desc, re.IGNORECASE):
+            gpu_brand = "amd"
+    gpu_model = re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE).group(1).replace(" ", "-") if re.search(r'(rtx\s*\d+|gtx\s*\d+|radeon\s*\w+)', gpu_desc, re.IGNORECASE) else "Unknown" # Extract GPU model
     gpu_memory = re.search(r'(\d+)\s*gb', gpu_desc, re.IGNORECASE).group(1) if re.search(r'(\d+)\s*gb', gpu_desc, re.IGNORECASE) else "Unknown"  # Extract GPU memory
     return {
         "CPU": {
@@ -223,15 +229,15 @@ def get_specs_de_bureau_gamer(text):
             "Memory": gpu_memory
         },
     }
-
+   
 def get_specs_ecran(text):
-    brand = re.search(r'(?<=ecran\s)(.*?)(?:,)', text)
+    brand = re.search(r'(?<=ecran\s)(.*?)(?:-)', text)
     Size = re.search(r'\b(\d{1,2}(\.\d+)?)\s*\"?\b', text)
     resolution = re.search(r'\b(?:fhd|hd|qhd|uhd|(\d{3,4}x\d{3,4}))\b', text)
-    refresh_rate = re.search(r'\d{2,3}\s*hz', text)
-    response_time = re.search(r'\d+\s*ms', text)
+    refresh_rate = re.search(r'(\d{2,3})(?:\s*hz)', text)
+    response_time = re.search(r'(\d+(,\d+)?)(?:\s*ms)', text)
     contrast = re.search(r'(\d{3,}:\d+)', text)
-    brightness = re.search(r'(?:luminosite:\s*)(.*?)(?:-)', text)
+    brightness = re.search(r'(?:luminosite:\s*)(.*?)(?:\s*(cd|nits))', text)
     viewing_angle = re.search(r'(\d+°h\s*/\s*\d+°v|\d+°\s*/\s*\d+°)', text)
     curvature = re.search(r'\d{3,4}r', text)
     if re.search(r"flat",text):
@@ -248,22 +254,21 @@ def get_specs_ecran(text):
     panel_type = re.search(r'(\bva\b|\btn\b|\boled\b|\bamoled\b|\bips\b)', text, re.IGNORECASE)
     
     return {
-        "Brand" : brand.group(1) if brand else "Unknown Brand",
-        "Size": Size.group(1) if Size else "Unknown Size",
-        "Resolution": resolution.group(0) if resolution else "Unknown Resolution",
-        "Refresh Rate": refresh_rate.group(0) if refresh_rate else "Unknown Refresh Rate",
-        "Response Time": response_time.group(0) if response_time else "Unknown Response Time",
-        "Contrast": contrast.group(1) if contrast else "Unknown Contrast",
-        "Brightness": brightness.group(1) if brightness else "Unknown Brightness",
-        "Viewing Angle": viewing_angle.group(0) if viewing_angle else "Unknown Viewing Angle",
+        "Brand" : brand.group(1) if brand else "Unknown",
+        "Size": Size.group(1) if Size else "Unknown",
+        "Resolution": resolution.group(0) if resolution else "Unknown",
+        "Refresh Rate": refresh_rate.group(1) if refresh_rate else "Unknown",
+        "Response Time": response_time.group(1) if response_time else "Unknown",
+        "Contrast": contrast.group(1) if contrast else "Unknown",
+        "Brightness": brightness.group(1) if brightness else "Unknown",
+        "Viewing Angle": viewing_angle.group(0) if viewing_angle else "Unknown",
         "Curvature": curvature,
-        "Connectors": list(set(connectors)) if connectors else ["Unknown Connectors"],
+        "Connectors": list(set(connectors)) if connectors else ["Unknown"],
         "Audio Ports": "Yes" if audio_ports else "No",
         "Flicker Free": "Yes" if flicker_free else "No",
         "Blue Light Filter": "Yes" if blue_light_filter else "No",
         "Adaptive Sync": "Yes" if adaptive_sync else "No",
-        "Panel Type": panel_type.group(1) if panel_type else "Unknown Panel Type",
-        
+        "Panel Type": panel_type.group(1) if panel_type else "Unknown", 
     }
     # Extract Screen
    
@@ -330,30 +335,28 @@ def get_product_details_pc_portablegamer(l):
             time.sleep(1)
             html_text = requests.get(l + str(i)).text
             soup = BeautifulSoup(html_text, "lxml")
-            products = soup.find_all("div", class_="product-item-info")
+            products = soup.find_all("div", class_="product-container card h-100 d-flex flex-column")
+            print(f"Number of products found on page {i}: {len(products)}")
             for product in products:
-                title = product.find("h2", class_ = "product name product-item-name").text.strip()
+                title = product.find("a", class_ = "product-item-link").text.strip()
                 print("Title: " + title)
-                price = product.find("span", class_="price").text.strip()
+                price = product.find("span", class_="final-price").text.strip()
                 print("Price: " + price)
                 link = product.find("a")["href"]
                 print("link: " + link)
-                image = product.find("img" , class_="product-image-photo")["src"]
+                image = product.find("img" , id="seImgProduct")["src"]
                 print("image" + image)
-                ID = product.find("div", class_="skuDesktop").text.strip()
+                ID = product.find("div", class_="sku").text.strip()
                 print("ID: " + ID)
                 product_html_text = requests.get(link, 'lxml').text
                 product_soup = BeautifulSoup(product_html_text, "lxml")
-                print("error")
                 print("-" * 40)
-                if product.find("div", class_="stock available"):
-                    availability = product.find("div", class_="stock available").text.strip()
-                elif product.find("div", class_="stock unavailable"):
-                    availability = product.find("div", class_="stock unavailable").text.strip()
-                elif product.find("div", class_="stock available available_backorder"):
-                    availability = product.find("div", class_="stock available available_backorder").text.strip()
-                elif product.find("div", class_="stock available unavailable_preorder"):
-                    availability = product.find("div", class_="stock available unavailable_preorder").text.strip()
+                if product.find("div", class_="stock availables"):
+                    availability = product.find("div", class_="stock availables").text.strip()
+                elif product.find("div", class_="stock out-of-stock"):
+                    availability = product.find("div", class_="stock out-of-stock").text.strip()
+                elif product.find("div", class_="stock incoming"):
+                    availability = product.find("div", class_="stock incoming").text.strip()
                 else:
                     availability = "Unknown" 
                 print("availability", availability)
@@ -432,13 +435,13 @@ def get_product_details_pc_portablegamer(l):
                 if productdict not in product_list:
                     product_list.append(productdict)
                 else:
-                    print(f"Duplicate product found: {title} - {price}")    
-        except:        
-             print(f"An error occurred while processing page {i}.")
-             pass   
+                    print(f"Duplicate product found: {title} - {price}")
+        except Exception as e:
+            print(f"An error occurred while processing page {i}: {e}")
+            pass
         nextpage = requests.get(l + str(i+1))
         nxsoup = BeautifulSoup(nextpage.text, "lxml")
-        if len(nxsoup.find_all("div", class_="product-item-info")) == 1:
+        if len(nxsoup.find_all("div", class_="product-container card h-100 d-flex flex-column")) == 0:
             break
     print(len(product_list)) 
     print(i)   
@@ -455,30 +458,27 @@ def get_product_details_pc_de_bureau_gamer(l):
             time.sleep(1)
             html_text = requests.get(l + str(i)).text
             soup = BeautifulSoup(html_text, "lxml")
-            products = soup.find_all("div", class_="product-item-info")
+            products = soup.find_all("div", class_="product-container card h-100 d-flex flex-column")
             for product in products:
-                title = product.find("h2", class_ = "product name product-item-name").text.strip()
+                title = product.find("a", class_ = "product-item-link").text.strip()
                 print("Title: " + title)
-                price = product.find("span", class_="price").text.strip()
+                price = product.find("span", class_="final-price").text.strip()
                 print("Price: " + price)
                 link = product.find("a")["href"]
                 print("link: " + link)
-                image = product.find("img" , class_="product-image-photo")["src"]
+                image = product.find("img" , id="seImgProduct")["src"]
                 print("image" + image)
-                ID = product.find("div", class_="skuDesktop").text.strip()
+                ID = product.find("div", class_="sku").text.strip()
                 print("ID: " + ID)
                 product_html_text = requests.get(link, 'lxml').text
                 product_soup = BeautifulSoup(product_html_text, "lxml")
-                print("error")
                 print("-" * 40)
-                if product.find("div", class_="stock available"):
-                    availability = product.find("div", class_="stock available").text.strip()
-                elif product.find("div", class_="stock unavailable"):
-                    availability = product.find("div", class_="stock unavailable").text.strip()
-                elif product.find("div", class_="stock available available_backorder"):
-                    availability = product.find("div", class_="stock available available_backorder").text.strip()
-                elif product.find("div", class_="stock available unavailable_preorder"):
-                    availability = product.find("div", class_="stock available unavailable_preorder").text.strip()
+                if product.find("div", class_="stock availables"):
+                    availability = product.find("div", class_="stock availables").text.strip()
+                elif product.find("div", class_="stock out-of-stock"):
+                    availability = product.find("div", class_="stock out-of-stock").text.strip()
+                elif product.find("div", class_="stock incoming"):
+                    availability = product.find("div", class_="stock incoming").text.strip()
                 else:
                     availability = "Unknown" 
                 print("availability", availability)
@@ -541,7 +541,7 @@ def get_product_details_pc_de_bureau_gamer(l):
             pass   
         nextpage = requests.get(l + str(i+1))
         nxsoup = BeautifulSoup(nextpage.text, "lxml")
-        if len(nxsoup.find_all("div", class_="product-item-info")) == 1:
+        if len(nxsoup.find_all("div", class_="product-container card h-100 d-flex flex-column")) == 0:
             break
     print(len(product_list)) 
     print(i)   
@@ -558,30 +558,27 @@ def get_product_details_ecran_gamer(l):
             time.sleep(1)
             html_text = requests.get(l + str(i)).text
             soup = BeautifulSoup(html_text, "lxml")
-            products = soup.find_all("div", class_="product-item-info")
+            products = soup.find_all("div", class_="product-container card h-100 d-flex flex-column")
             for product in products:
-                title = product.find("h2", class_ = "product name product-item-name").text.strip()
+                title = product.find("a", class_ = "product-item-link").text.strip()
                 print("Title: " + title)
-                price = product.find("span", class_="price").text.strip()
+                price = product.find("span", class_="final-price").text.strip()
                 print("Price: " + price)
                 link = product.find("a")["href"]
                 print("link: " + link)
-                image = product.find("img" , class_="product-image-photo")["src"]
+                image = product.find("img" , id="seImgProduct")["src"]
                 print("image" + image)
-                ID = product.find("div", class_="skuDesktop").text.strip()
+                ID = product.find("div", class_="sku").text.strip()
                 print("ID: " + ID)
                 product_html_text = requests.get(link, 'lxml').text
                 product_soup = BeautifulSoup(product_html_text, "lxml")
-                print("error")
                 print("-" * 40)
-                if product.find("div", class_="stock available"):
-                    availability = product.find("div", class_="stock available").text.strip()
-                elif product.find("div", class_="stock unavailable"):
-                    availability = product.find("div", class_="stock unavailable").text.strip()
-                elif product.find("div", class_="stock available available_backorder"):
-                    availability = product.find("div", class_="stock available available_backorder").text.strip()
-                elif product.find("div", class_="stock available unavailable_preorder"):
-                    availability = product.find("div", class_="stock available unavailable_preorder").text.strip()
+                if product.find("div", class_="stock availables"):
+                    availability = product.find("div", class_="stock availables").text.strip()
+                elif product.find("div", class_="stock out-of-stock"):
+                    availability = product.find("div", class_="stock out-of-stock").text.strip()
+                elif product.find("div", class_="stock incoming"):
+                    availability = product.find("div", class_="stock incoming").text.strip()
                 else:
                     availability = "Unknown" 
                 print("availability", availability)
@@ -639,130 +636,128 @@ def get_product_details_ecran_gamer(l):
             pass
         nextpage = requests.get(l + str(i+1))
         nxsoup = BeautifulSoup(nextpage.text, "lxml")
-        if len(nxsoup.find_all("div", class_="product-item-info")) == 1:
+        if len(nxsoup.find_all("div", class_="product-container card h-100 d-flex flex-column")) == 0:
             break
     print(len(product_list)) 
     print(i)   
     return product_list
-           
-#Tunisianet Urls
-Mytek = {   "Pc Portable Gamer":"https://www.mytek.tn/informatique/ordinateurs-portables/pc-gamer.html?p=",
-            "Pc de Bureau Gamer" : "https://www.mytek.tn/informatique/ordinateur-de-bureau/ordinateur-gamer.html?p=",
-            "Ecran Gamer" : "https://www.mytek.tn/gaming/peripheriques-et-accessoires-gamers/ecran-gamer.html?p=",}
-            # "Souris Gamer" : "https://www.mytek.tn/gaming/peripheriques-et-accessoires-gamers/souris-gamer.html?p=",
-            # "Casque Gamer" : "https://www.mytek.tn/gaming/peripheriques-et-accessoires-gamers/micro-casque-gamer.html?p=",
-            # "Clavier Gamer" : "https://www.mytek.tn/gaming/peripheriques-et-accessoires-gamers/clavier-gamer.html?p=", 
-            # "Tapis Souris Gamer" : "https://www.mytek.tn/gaming/peripheriques-et-accessoires-gamers/tapis-de-souris-gamer.html?p=",
+ 
+def main():
+    #Tunisianet Urls
+    Mytek = {   "Pc Portable Gamer":"https://www.mytek.tn/informatique/ordinateurs-portables/pc-gamer.html?p=",
+                "Pc de Bureau Gamer" : "https://www.mytek.tn/informatique/ordinateur-de-bureau/ordinateur-gamer.html?p=",
+                "Ecran Gamer" : "https://www.mytek.tn/gaming/peripheriques-et-accessoires-gamers/ecran-gamer.html?p=",}
 
-# Create a CSV file for each category and write the product details
-for item in Mytek:
-    with open(f"Main\Products\Mytek\{item}.csv", "w", newline='', encoding="utf-8") as file:
-        if item == "Pc Portable Gamer":
-            writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
-                                                      "Brand", "Model",
-                                                      "CPU Brand", "CPU Model", "CPU Cores", "CPU Frequency", "CPU Cache",
-                                                      "RAM Size", "RAM Type",
-                                                      "Storage Size","Storage Type","Storage Unit",
-                                                      "GPU Brand", "GPU Model", "GPU Memory",
-                                                      "Wi-Fi", "Bluetooth", "Keyboard",  "Ports",
-                                                      "Screen Type", "Screen Size", "Screen Resolution", "Screen Refresh Rate",
-                                                      ])
-            writer.writeheader()
-            products = get_product_details_pc_portablegamer(Mytek[item])
-            for product in products:
-                writer.writerow({
-                    "Title": product["title"],
-                    "Price": product["price"],
-                    "Link": product["link"],
-                    "Image": product["image"],
-                    "Availability": product["availability"],
-                    "ID": product["ID"],
-                    "Brand": product["Brand"],
-                    "Model": product["Model"],
-                    "CPU Brand": product["CPU"]["Brand"],
-                    "CPU Model": product["CPU"]["Model"],
-                    "CPU Cores": product["CPU"]["Cores"],
-                    "CPU Frequency": product["CPU"]["Frequency"],
-                    "CPU Cache": product["CPU"]["Cache"],
-                    "RAM Size": product["RAM"]["Size"],
-                    "RAM Type": product["RAM"]["Type"],
-                    "Storage Size": product["Storage"]["Size"],
-                    "Storage Type": product["Storage"]["Type"],
-                    "Storage Unit": product["Storage"]["Unit"],
-                    "GPU Brand": product["GPU"]["Brand"],
-                    "GPU Model": product["GPU"]["Model"],
-                    "GPU Memory": product["GPU"]["Memory"],
-                    "Wi-Fi": product["Wi-Fi"],
-                    "Bluetooth": product["Bluetooth"],
-                    "Keyboard": product["Keyboard"],
-                    "Ports": product["Ports"],
-                    "Screen Type": product["Screen"]["Type"],
-                    "Screen Size": product["Screen"]["Size"],
-                    "Screen Resolution": product["Screen"]["Resolution"],
-                    "Screen Refresh Rate": product["Screen"]["Refresh Rate"],
-                })
-        if item == "Pc de Bureau Gamer":
-            writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
-                                                      "CPU Brand", "CPU Model", "CPU Cores", "CPU Frequency", "CPU Cache",
-                                                      "RAM Size", "RAM Type",
-                                                      "Storage Size","Storage Type","Storage Unit",
-                                                      "GPU Brand", "GPU Model", "GPU Memory",
-                                                      ])
-            writer.writeheader()
-            products = get_product_details_pc_de_bureau_gamer(Mytek[item])
-            for product in products:      
-                writer.writerow({
-                    "Title": product["title"],
-                    "Price": product["price"],
-                    "Link": product["link"],
-                    "Image": product["image"],
-                    "Availability": product["availability"],
-                    "ID": product["ID"],
-                    "CPU Brand": product["CPU"]["Brand"],
-                    "CPU Model": product["CPU"]["Model"],
-                    "CPU Cores": product["CPU"]["Cores"],
-                    "CPU Frequency": product["CPU"]["Frequency"],
-                    "CPU Cache": product["CPU"]["Cache"],
-                    "RAM Size": product["RAM"]["Size"],
-                    "RAM Type": product["RAM"]["Type"],
-                    "Storage Size": product["Storage"]["Size"],
-                    "Storage Type": product["Storage"]["Type"],
-                    "Storage Unit": product["Storage"]["Unit"],
-                    "GPU Brand": product["GPU"]["Brand"],
-                    "GPU Model": product["GPU"]["Model"],
-                    "GPU Memory": product["GPU"]["Memory"]
-                })
-        if item == "Ecran Gamer":     
-            writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
-                                                      "Brand", "Size", "Resolution", "Refresh Rate", "Response Time",
-                                                      "Contrast", "Brightness", "Viewing Angle", "Curvature",
-                                                      "Connectors", "Audio Ports", "Flicker Free", "Blue Light Filter",
-                                                      "Adaptive Sync", "Panel Type",
-                                                      ])
-            writer.writeheader()  
-            products = get_product_details_ecran_gamer(Mytek[item])
-            for product in products:
-                writer.writerow({
-                    "Title": product["title"],
-                    "Price": product["price"],
-                    "Link": product["link"],
-                    "Image": product["image"],
-                    "Availability": product["availability"],
-                    "ID": product["ID"],
-                    "Brand": product["Brand"],
-                    "Size": product["Size"],
-                    "Resolution": product["Resolution"],
-                    "Refresh Rate": product["Refresh Rate"],
-                    "Response Time": product["Response Time"],
-                    "Contrast": product["Contrast"],
-                    "Brightness": product["Brightness"],
-                    "Viewing Angle": product["Viewing Angle"],
-                    "Curvature": product["Curvature"],
-                    "Connectors": product["Connectors"],
-                    "Audio Ports": product["Audio Ports"],
-                    "Flicker Free": product["Flicker Free"],
-                    "Blue Light Filter": product["Blue Light Filter"],
-                    "Adaptive Sync": product["Adaptive Sync"],
-                    "Panel Type": product["Panel Type"]
-                })        
-    print(f"Finished writing {item} products to CSV file.")
+    # Create a CSV file for each category and write the product details
+    for item in Mytek:
+        with open(f"Main\Products\Mytek\{item}.csv", "w", newline='', encoding="utf-8") as file:
+            if item == "Pc Portable Gamer":
+                writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
+                                                        "Brand", "Model",
+                                                        "CPU Brand", "CPU Model", "CPU Cores", "CPU Frequency", "CPU Cache",
+                                                        "RAM Size", "RAM Type",
+                                                        "Storage Size","Storage Type","Storage Unit",
+                                                        "GPU Brand", "GPU Model", "GPU Memory",
+                                                        "Wi-Fi", "Bluetooth", "Keyboard",  "Ports",
+                                                        "Screen Type", "Screen Size", "Screen Resolution", "Screen Refresh Rate",
+                                                        ])
+                writer.writeheader()
+                products = get_product_details_pc_portablegamer(Mytek[item])
+                for product in products:
+                    writer.writerow({
+                        "Title": product["title"],
+                        "Price": product["price"],
+                        "Link": product["link"],
+                        "Image": product["image"],
+                        "Availability": product["availability"],
+                        "ID": product["ID"],
+                        "Brand": product["Brand"],
+                        "Model": product["Model"],
+                        "CPU Brand": product["CPU"]["Brand"],
+                        "CPU Model": product["CPU"]["Model"],
+                        "CPU Cores": product["CPU"]["Cores"],
+                        "CPU Frequency": product["CPU"]["Frequency"],
+                        "CPU Cache": product["CPU"]["Cache"],
+                        "RAM Size": product["RAM"]["Size"],
+                        "RAM Type": product["RAM"]["Type"],
+                        "Storage Size": product["Storage"]["Size"],
+                        "Storage Type": product["Storage"]["Type"],
+                        "Storage Unit": product["Storage"]["Unit"],
+                        "GPU Brand": product["GPU"]["Brand"],
+                        "GPU Model": product["GPU"]["Model"],
+                        "GPU Memory": product["GPU"]["Memory"],
+                        "Wi-Fi": product["Wi-Fi"],
+                        "Bluetooth": product["Bluetooth"],
+                        "Keyboard": product["Keyboard"],
+                        "Ports": product["Ports"],
+                        "Screen Type": product["Screen"]["Type"],
+                        "Screen Size": product["Screen"]["Size"],
+                        "Screen Resolution": product["Screen"]["Resolution"],
+                        "Screen Refresh Rate": product["Screen"]["Refresh Rate"],
+                    })
+            if item == "Pc de Bureau Gamer":
+                writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
+                                                        "CPU Brand", "CPU Model", "CPU Cores", "CPU Frequency", "CPU Cache",
+                                                        "RAM Size", "RAM Type",
+                                                        "Storage Size","Storage Type","Storage Unit",
+                                                        "GPU Brand", "GPU Model", "GPU Memory",
+                                                        ])
+                writer.writeheader()
+                products = get_product_details_pc_de_bureau_gamer(Mytek[item])
+                for product in products:      
+                    writer.writerow({
+                        "Title": product["title"],
+                        "Price": product["price"],
+                        "Link": product["link"],
+                        "Image": product["image"],
+                        "Availability": product["availability"],
+                        "ID": product["ID"],
+                        "CPU Brand": product["CPU"]["Brand"],
+                        "CPU Model": product["CPU"]["Model"],
+                        "CPU Cores": product["CPU"]["Cores"],
+                        "CPU Frequency": product["CPU"]["Frequency"],
+                        "CPU Cache": product["CPU"]["Cache"],
+                        "RAM Size": product["RAM"]["Size"],
+                        "RAM Type": product["RAM"]["Type"],
+                        "Storage Size": product["Storage"]["Size"],
+                        "Storage Type": product["Storage"]["Type"],
+                        "Storage Unit": product["Storage"]["Unit"],
+                        "GPU Brand": product["GPU"]["Brand"],
+                        "GPU Model": product["GPU"]["Model"],
+                        "GPU Memory": product["GPU"]["Memory"]
+                    })
+            if item == "Ecran Gamer":     
+                writer = csv.DictWriter(file, fieldnames=["Title", "Price", "Link", "Image","Availability", "ID",
+                                                        "Brand", "Size", "Resolution", "Refresh Rate", "Response Time",
+                                                        "Contrast", "Brightness", "Viewing Angle", "Curvature",
+                                                        "Connectors", "Audio Ports", "Flicker Free", "Blue Light Filter",
+                                                        "Adaptive Sync", "Panel Type",
+                                                        ])
+                writer.writeheader()  
+                products = get_product_details_ecran_gamer(Mytek[item])
+                for product in products:
+                    writer.writerow({
+                        "Title": product["title"],
+                        "Price": product["price"],
+                        "Link": product["link"],
+                        "Image": product["image"],
+                        "Availability": product["availability"],
+                        "ID": product["ID"],
+                        "Brand": product["Brand"],
+                        "Size": product["Size"],
+                        "Resolution": product["Resolution"],
+                        "Refresh Rate": product["Refresh Rate"],
+                        "Response Time": product["Response Time"],
+                        "Contrast": product["Contrast"],
+                        "Brightness": product["Brightness"],
+                        "Viewing Angle": product["Viewing Angle"],
+                        "Curvature": product["Curvature"],
+                        "Connectors": product["Connectors"],
+                        "Audio Ports": product["Audio Ports"],
+                        "Flicker Free": product["Flicker Free"],
+                        "Blue Light Filter": product["Blue Light Filter"],
+                        "Adaptive Sync": product["Adaptive Sync"],
+                        "Panel Type": product["Panel Type"]
+                    })        
+        print(f"Finished writing {item} products to CSV file.")
+            
