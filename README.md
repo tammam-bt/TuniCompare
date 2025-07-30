@@ -3,6 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![CSV](https://img.shields.io/badge/CSV-217346?style=for-the-badge&logo=microsoftexcel&logoColor=white)](https://en.wikipedia.org/wiki/Comma-separated_values)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
 [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/CSS)
@@ -13,11 +14,11 @@ TuniCompare is a lightweight product comparison platform built for educational p
 
 ## ✨ Key Features
 
-- 🕷️ **Smart Web Scraping** — Custom Python scripts extract product data and export to structured `.csv` files grouped by category and source site. Data is then parsed and loaded into PostgreSQL for dynamic querying.
+- 🕷️ **Smart Web Scraping** — Custom Python scripts extract product data and export to structured .csv files grouped by category and source site. Data is then parsed and loaded into PostgreSQL for dynamic querying.
 
 - 🔍 **Intelligent Product Matching** — Rule-based algorithm matches identical products across different sites by comparing normalized specs (CPU, RAM, GPU) using fuzzy string matching for inconsistent naming.
 
-- ⚡ **Dynamic DOM Rendering** — Uses `document.createElement()` and modular JavaScript to fetch and populate product cards from backend API responses. [📖 MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/Document/createElement)
+- ⚡ **Dynamic DOM Rendering** — Uses document.createElement() and modular JavaScript to fetch and populate product cards from backend API responses. [📖 MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/Document/createElement)
 
 - 🎨 **Modern UI Design** — Built with pure HTML and CSS (no frameworks), featuring grid/flex layouts, component-based styling, and category-specific views.
 
@@ -28,13 +29,60 @@ TuniCompare is a lightweight product comparison platform built for educational p
 | **Python** | Backend logic, scraping, data parsing | ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) |
 | **Flask** | Lightweight web framework for routing and APIs | ![Flask](https://img.shields.io/badge/Flask-000000?style=flat-square&logo=flask&logoColor=white) |
 | **PostgreSQL** | Relational database for persistent storage | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white) |
+| **CSV** | Data storage and interchange format | ![CSV](https://img.shields.io/badge/CSV-217346?style=flat-square&logo=microsoftexcel&logoColor=white) |
 | **SQLite3** | Alternative lightweight database option | ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=flat-square&logo=sqlite&logoColor=white) |
 | **JavaScript** | Dynamic frontend interactions | ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) |
 | **HTML5/CSS3** | Semantic markup and responsive design | ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white) |
 
+## 📦 Installation
+
+Follow these steps to set up TuniCompare on your local machine:
+
+### Prerequisites
+- Python 3.7 or higher
+- Git
+
+### Setup Instructions
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/tunicompare.git
+   cd tunicompare
+   ```
+
+2. **Create environment file**
+   ```bash
+   # Create a .env file in the parent folder
+   touch .env
+   ```
+   Add your environment variables (database credentials, API keys, etc.) to the `.env` file.
+   ```bash
+   # Database connection details
+   dbhost = your_host
+   dbport = your_port
+   dbname = your_database_name
+   dbuser = your_database_user
+   dbpass = your_password
+   dburl = postgresql://postgres:your_password@your_host/your_database_name
+   ``` 
+4. **Install dependencies**
+   ```bash
+   # Install required Python packages
+   pip install -r requirements.txt
+   ```
+
+5. **Run the application**
+   ```bash
+   python run.py
+   ```
+
+6. **Access the website**
+   Open your browser and navigate to `http://localhost:5000` to view the TuniCompare platform.
+
+The website will now be running on your local server! 🎉
+
 ## 📁 Project Structure
 
-```
 📦 Main/
 ├── 📊 Products/
 │   └── 📄 [CSV files scraped from each site by product type]
@@ -51,7 +99,7 @@ TuniCompare is a lightweight product comparison platform built for educational p
 │           ├── 🖥️ Desktop/
 │           ├── 💻 Laptop/
 │           └── 📺 Screen/
-```
+
 
 ### 📂 Directory Highlights
 
@@ -59,7 +107,7 @@ TuniCompare is a lightweight product comparison platform built for educational p
 |-----------|-------------|------|
 | **Products/** | Raw scraped data in CSV format, grouped by site and category | 📊 |
 | **Resources/** | All logos and image assets used in the UI | 🖼️ |
-| **Backend/** | Scraping logic and `DB.py` module for PostgreSQL integration | ⚙️ |
+| **Backend/** | Scraping logic and DB.py module for PostgreSQL integration | ⚙️ |
 | **Website/Shop/** | Category-specific folders with self-contained HTML, CSS, and JS | 🛍️ |
 
 ## 🚀 Skills Developed
@@ -73,6 +121,27 @@ This project provided hands-on experience with:
 - 🎨 **Frontend Design** — Creating responsive layouts without frameworks
 - 🔍 **Data Processing** — Implementing fuzzy logic for inconsistent product matching
 - ⚡ **Dynamic Content** — Serving real-time data using vanilla JavaScript
+
+## 🤝 Support & Contribution
+
+We'd love to hear from you! TuniCompare is an open educational project, and community interaction helps make it better.
+
+### 🌟 Ways to Get Involved
+
+- **⭐ Star this repository** if you find it useful or interesting
+- **🐛 Report bugs** by opening an issue on GitHub
+- **💡 Suggest features** or improvements through discussions
+- **🔀 Submit pull requests** to contribute code improvements
+- **📖 Share your experience** - let us know how you used this project for learning
+- **🗣️ Spread the word** - share with fellow developers and students
+
+### 📬 Get in Touch
+
+- **GitHub Issues**: For bug reports and feature requests
+- **Discussions**: For questions, ideas, and general conversation about the project
+- **Educational Use**: If you're using this project for teaching or learning, we'd love to hear about your experience!
+
+Your feedback and contributions help make TuniCompare a better learning resource for everyone. Every interaction, no matter how small, is appreciated! 🙏
 
 ## ⚠️ Educational Disclaimer
 
