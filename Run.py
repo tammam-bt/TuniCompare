@@ -1,5 +1,4 @@
 from Main.Code.Scripts import DB, Mytek, ScoopGaming, Tunisianet, ProductMatching
-from Main.Code.App import __init__
 import runpy
 
 
@@ -10,4 +9,4 @@ Mytek.main()
 ScoopGaming.main()
 DB.main()
 ProductMatching.main()
-runpy.run_path("Main/Code/App/__init__.py", run_name = "__main__")
+runpy.run_path("Main/Code/App/app.py", run_name = "__main__")
