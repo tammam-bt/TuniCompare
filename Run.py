@@ -1,4 +1,4 @@
-from Main.Code.Scripts import DB, Mytek, ScoopGaming, Tunisianet, ProductMatching
+from Scripts import DB, Mytek, ScoopGaming, Tunisianet, ProductMatching
 import runpy
 
 
