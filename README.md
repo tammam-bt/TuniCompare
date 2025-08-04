@@ -12,6 +12,46 @@
 
 TuniCompare is a lightweight product comparison platform built for educational purposes. It scrapes product data (💻 Laptops, 🖥️ Desktops, and 📺 Screens) from leading Tunisian e-commerce websites — **Mytek**, **Tunisianet**, and **ScoopGaming** — and serves it through a minimal Flask backend with a clean HTML/CSS/JavaScript frontend. The site design is responsive, modern, and optimized for clarity and usability.
 
+## 📸 Visual Showcase
+
+Take a closer look at TuniCompare's intuitive interface and powerful comparison features:
+
+### 🏠 **Homepage Overview**
+![Homepage](Screenshots/HomePage.png)
+
+The TuniCompare homepage welcomes users with a sleek, modern design featuring a tech-inspired background that immediately conveys the platform's focus on technology products. The clean navigation bar provides easy access to Shop, About, and Contact sections, while the prominent call-to-action invites users to "Start Shopping" and begin their product comparison journey.
+
+### ⭐ **Featured Products Section** 
+![Featured Products](Screenshots/HomeFeaturedList.png)
+
+Our intelligent featured products showcase highlights the most popular items based on sales data and user engagement. Each product card displays essential information including product images, detailed specifications, and real-time pricing from all three major Tunisian retailers. The visual hierarchy makes it easy to compare options at a glance.
+
+### 🧭 **Category Navigation**
+![Product Categories](Screenshots/HomeProductsLinks.png)
+
+The category selection interface uses striking visual cards with RGB lighting effects that appeal to the gaming community. Users can seamlessly navigate between Gaming Laptops, Gaming Desktops, and Gaming Screens, with each category featuring distinctive visual themes that reflect the product type.
+
+### 📋 **Product Listing Page**
+![Product Page Structure](Screenshots/ProductPageStructure.png)
+
+Category pages maintain the same elegant design language with focused headers and clear product categorization. The "Gaming Laptops" page demonstrates the clean, distraction-free environment that helps users focus on comparing products without visual clutter.
+
+### 🔍 **Dynamic Product Grid**
+![Product List](Screenshots/ProductPageProductList.png)
+
+The product listing showcases our advanced infinite scroll system in action. Each product entry includes comprehensive specifications (CPU, GPU, RAM, storage), detailed product images, and our signature price comparison cards. The layout efficiently presents large amounts of technical data in an easily digestible format.
+
+### 💰 **Smart Price Comparison Cards**
+![Product Card Details](Screenshots/ProductPageProductListElement.png)
+
+Our innovative price comparison system is the heart of TuniCompare's value proposition. Each product features retailer-specific cards with intelligent visual cues:
+
+- **🔴 Red Shadow**: Indicates the best available price - helping users instantly identify the most cost-effective option
+- **⚪ White Text**: Shows competitive pricing that's available but not the lowest
+- **⚫ Grayed Out**: Displays unavailable products or out-of-stock items
+
+This color-coded system allows users to make informed purchasing decisions at a glance, comparing prices across Tunisianet, MyTek, and ScoopGaming without visiting multiple websites.
+
 ## ✨ Key Features
 
 - 🕷️ **Smart Web Scraping** — Custom Python scripts extract product data and export to structured .csv files grouped by category and source site. Data is then parsed and loaded into PostgreSQL for dynamic querying.
@@ -250,9 +290,7 @@ We'd love to hear from you! TuniCompare is an open educational project, and comm
 - **Discussions**: For questions, ideas, and general conversation about the project
 - **Educational Use**: If you're using this project for teaching or learning, we'd love to hear about your experience!
 
-Your feedback and contributions help make TuniCompare a better learning resource for everyone. Every interaction, no matter how small, is appreciated! 🙏
-
-## ⚠️ Educational Disclaimer
+---
 
 > 🎓 **Learning Project Notice**
 > 
