@@ -1,9 +1,11 @@
-import psycopg2
+import sqlite3
 import csv
 import re
-from dotenv import load_dotenv
 import os
 
+# Paths are resolved from the repo root so the build works from any working directory
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(REPO_ROOT, "tunicompare.db")
 
 # Creation Queries for the tables
 Tunisianet_Pc_Portable_Gamer = ["Tunisianet_Pc_Portable_Gamer", """CREATE TABLE IF NOT EXISTS Tunisianet_Pc_Portable_Gamer (
@@ -235,8 +237,9 @@ Table_Queries = [Tunisianet_Pc_Portable_Gamer,Mytek_Pc_Portable_Gamer, ScoopGami
 
 def Create_Table(cursor, query):
     # Create a table in the database
+    # Names are lowercased because app.py relies on the lowercase names Postgres used to fold them to
     try:
-        cursor.execute(query[1])
+        cursor.execute(query[1].lower())
         print("Created Table " + query[0])
     except Exception as e:
         print(f"Error creating table {query[0]}: {e}")
@@ -247,7 +250,7 @@ def Populate_tables(cursor, Websites, items):
         print("--" * 20)
         for i,website in enumerate(Websites):
             print(f"Processing {website} - {item}")
-            with open(f"Main\Products\{website}\{item}.csv", "r", newline='', encoding="utf-8") as file:
+            with open(os.path.join(REPO_ROOT, "Main", "Products", website, f"{item}.csv"), "r", newline='', encoding="utf-8") as file:
                 reader = csv.DictReader(file)
                 Table = Table_Queries[i + j*3][0]
                 print(f"Table: {Table}")
@@ -498,26 +501,16 @@ def Resolution(s):
     else:
         return None
 
-def main():
-    # Load environment variables
-    load_dotenv()
+def main(db_path=DB_PATH):
+    # The database is rebuilt from scratch from the CSVs every time
+    if os.path.exists(db_path):
+        os.remove(db_path)
     # Connect to the database
-    DB = psycopg2.connect(
-        host=os.getenv("dbhost"),
-        dbname=os.getenv("dbname"),
-        user=os.getenv("dbuser"),
-        password=os.getenv("dbpass"),
-        port=os.getenv("dbport")
-    )
+    DB = sqlite3.connect(db_path)
     cursor = DB.cursor()
-    # Create tables if they do not exist
+    # Create the tables
     for table in Table_Queries:
-        cursor.execute(f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{table[0]}'")
-        if cursor.fetchone() is not None:
-            print(f"Table {table[0]} already exists.")
-        else:
-            cursor.execute(table[1])
-            print(f"Table {table[0]} created.")
+        Create_Table(cursor, table)
     # Websites and items to process
     items = ["Pc Portable Gamer", "Pc de Bureau Gamer", "Ecran Gamer"]
     Websites = ["Tunisianet","Mytek","Scoop Gaming"]

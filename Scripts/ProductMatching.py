@@ -2,10 +2,9 @@
 #It contains all the matching logic for products, including the logic to match products based on their specifications.
 
 from thefuzz import fuzz
-import psycopg2
+import sqlite3
 import re
-from dotenv import load_dotenv
-import os
+from Scripts.DB import DB_PATH
 
 
 
@@ -278,8 +277,9 @@ def similarity_score(product1, product2, product_type = "Pc_Portable_Gamer"):
 
 def Create_Table(cursor, query):
     # Create a table in the database
+    # Names are lowercased because app.py relies on the lowercase names Postgres used to fold them to
     try:
-        cursor.execute(query[1])
+        cursor.execute(query[1].lower())
         print("Created Table " + query[0])
     except Exception as e:
         print(f"Error creating table {query[0]}: {e}")
@@ -317,29 +317,16 @@ FOREIGN KEY (linkScoopGaming) REFERENCES ScoopGaming_Ecran_Gamer(link) ON DELETE
 
 Table_Queries = [Matched_Pc_Portable_Gamer, Matched_Pc_Bureau_Gamer, Matched_Ecran_Gamer]
 
-def main():
-    # Load environment variables from .env file
-    load_dotenv()
-    # Create a connection to the database
-    DB = psycopg2.connect(
-        host=os.getenv("dbhost"),
-        dbname=os.getenv("dbname"),
-        user=os.getenv("dbuser"),
-        password=os.getenv("dbpass"),
-        port=os.getenv("dbport")
-    )
+def main(db_path=DB_PATH):
+    # Create a connection to the database built by DB.main
+    DB = sqlite3.connect(db_path)
     cursor = DB.cursor()
     # Product Types and Websites
     product_types = ["Pc_Portable_Gamer", "Pc_Bureau_Gamer", "Ecran_Gamer"]
     Websites = ["Tunisianet", "Mytek", "ScoopGaming"]
 
     for table in Table_Queries:
-        cursor.execute(f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{table[0]}'")
-        if cursor.fetchone() is not None:
-            print(f"Table {table[0]} already exists.")
-        else:
-            Create_Table(cursor, table)
-            print(f"Table {table[0]} created.")
+        Create_Table(cursor, table)
          
     # Pull data from each website for each product type
     Mytek_Pc_Portable_Gamer = Pull_Data("Mytek", "Pc_Portable_Gamer", cursor)
@@ -415,5 +402,5 @@ def main():
     DB.commit()
     print("All products matched and inserted successfully.")
 
-    DB.close()
     cursor.close()
+    DB.close()

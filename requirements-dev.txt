@@ -1,0 +1,13 @@
+-r requirements.txt
+beautifulsoup4==4.13.4
+bs4==0.0.2
+certifi==2025.7.14
+charset-normalizer==3.4.2
+idna==3.10
+packaging==25.0
+pytest==8.4.1
+RapidFuzz==3.13.0
+requests==2.32.4
+soupsieve==2.7
+thefuzz==0.22.1
+urllib3==2.5.0

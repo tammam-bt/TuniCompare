@@ -1,5 +1,4 @@
-from Scripts import DB, Mytek, ScoopGaming, Tunisianet, ProductMatching
-import runpy
+from Scripts import Mytek, ScoopGaming, Tunisianet, build_db
 
 
 
@@ -7,6 +6,4 @@ import runpy
 Tunisianet.main()
 Mytek.main()
 ScoopGaming.main()
-DB.main()
-ProductMatching.main()
-runpy.run_path("Main/Code/App/app.py", run_name = "__main__")
+build_db.main()
