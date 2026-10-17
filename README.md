@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
 [![CSV](https://img.shields.io/badge/CSV-217346?style=for-the-badge&logo=microsoftexcel&logoColor=white)](https://en.wikipedia.org/wiki/Comma-separated_values)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
@@ -54,7 +54,7 @@ This color-coded system allows users to make informed purchasing decisions at a 
 
 ## ✨ Key Features
 
-- 🕷️ **Smart Web Scraping** — Custom Python scripts extract product data and export to structured .csv files grouped by category and source site. Data is then parsed and loaded into PostgreSQL for dynamic querying.
+- 🕷️ **Smart Web Scraping** — Custom Python scripts extract product data and export to structured .csv files grouped by category and source site. Data is then parsed and loaded into a SQLite database for dynamic querying.
 
 - 🔧 **Intelligent Specs Extraction & Normalization** — Advanced parsing algorithms extract and standardize product specifications (CPU models, RAM capacity, GPU variants, storage types) from inconsistent raw data, enabling lightning-fast database queries and accurate comparisons.
 
@@ -72,9 +72,9 @@ This color-coded system allows users to make informed purchasing decisions at a 
 |------------|---------|-------|
 | **Python** | Backend logic, scraping, data parsing | ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) |
 | **Flask** | Lightweight web framework for routing and APIs | ![Flask](https://img.shields.io/badge/Flask-000000?style=flat-square&logo=flask&logoColor=white) |
-| **PostgreSQL** | Relational database for persistent storage | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white) |
+| **SQLite** | Relational database, built from the CSVs and shipped with the app | ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white) |
 | **CSV** | Data storage and interchange format | ![CSV](https://img.shields.io/badge/CSV-217346?style=flat-square&logo=microsoftexcel&logoColor=white) |
-| **Render** | Cloud platform for hosting and deployment | ![Render](https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=white) |
+| **Vercel** | Cloud platform for hosting and deployment | ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white) |
 | **JavaScript** | Dynamic frontend interactions | ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) |
 | **HTML5/CSS3** | Semantic markup and responsive design | ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white) |
 
@@ -85,9 +85,9 @@ Ready to explore TuniCompare? You have two options to experience the platform:
 ### 🚀 Option 1: Live Demo (Recommended)
 **Experience TuniCompare instantly — no setup required!**
 
-[![Visit TuniCompare](https://img.shields.io/badge/🌐_Visit_Live_Demo-4CAF50?style=for-the-badge&logoColor=white)](https://tunicompare.onrender.com/)
+[![Visit TuniCompare](https://img.shields.io/badge/🌐_Visit_Live_Demo-4CAF50?style=for-the-badge&logoColor=white)](https://tunicompare.vercel.app/)
 
-**👆 Click above or visit:** `https://tunicompare.onrender.com/`
+**👆 Click above or visit:** `https://tunicompare.vercel.app/`
 
 ✨ **Why try the live demo?**
 - 🎯 **Instant Access** — See the platform in action immediately
@@ -101,97 +101,52 @@ Ready to explore TuniCompare? You have two options to experience the platform:
 **Perfect for developers who want to explore the code!**
 
 #### Prerequisites
-- Python 3.7 or higher
+- Python 3.12 or higher
 - Git
 
 #### Setup Instructions
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/tunicompare.git
-   cd tunicompare
+   git clone https://github.com/tammam-bt/TuniCompare.git
+   cd TuniCompare
    ```
 
-2. **Set up PostgreSQL database**
-   
-   **Option A: Local PostgreSQL Installation**
-   ```bash
-   # Install PostgreSQL (Ubuntu/Debian)
-   sudo apt update
-   sudo apt install postgresql postgresql-contrib
-   
-   # Start PostgreSQL service
-   sudo systemctl start postgresql
-   sudo systemctl enable postgresql
-   
-   # Create database and user
-   sudo -u postgres psql
-   ```
-   ```sql
-   -- Inside PostgreSQL prompt
-   CREATE DATABASE tunicompare_db;
-   CREATE USER tunicompare_user WITH PASSWORD 'your_secure_password';
-   GRANT ALL PRIVILEGES ON DATABASE tunicompare_db TO tunicompare_user;
-   \q
-   ```
-   
-   **Option B: Using Docker (Recommended for development)**
-   ```bash
-   # Pull and run PostgreSQL container
-   docker run --name tunicompare-postgres \
-     -e POSTGRES_DB=tunicompare_db \
-     -e POSTGRES_USER=tunicompare_user \
-     -e POSTGRES_PASSWORD=your_secure_password \
-     -p 5432:5432 \
-     -d postgres:13
-   ```
-
-3. **Create environment file**
-   ```bash
-   # Create a .env file in the project root
-   touch .env
-   ```
-   Add your database credentials to the `.env` file:
-   ```bash
-   # Database connection details
-   dbhost = localhost
-   dbport = 5432
-   dbname = tunicompare_db
-   dbuser = tunicompare_user
-   dbpass = your_secure_password
-   dburl = postgresql://tunicompare_user:your_secure_password@localhost:5432/tunicompare_db
-   ``` 
-
-4. **Install dependencies**
+2. **Install dependencies**
    ```bash
    # Create virtual environment (recommended)
    python -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   
-   # Install required Python packages
-   pip install -r requirements.txt
+
+   # Install the app, build and scraper packages
+   pip install -r requirements-dev.txt
    ```
 
-5. **Initialize database and scrape data**
+3. **Build the database**
    ```bash
-   # Run the scraping pipeline to populate database
-   python run.py
+   # Rebuild tunicompare.db from the CSVs in Main/Products (no scraping, no database server)
+   python -m Scripts.build_db
    ```
+   To scrape fresh data first, run `python Run.py` instead (the scrapers date from summer 2025 and may need repairs).
 
-6. **Start the Flask application**
+4. **Start the Flask application**
    ```bash
-   # Run the main application
    python app.py
    ```
 
-7. **Access locally**
+5. **Run the tests** (optional)
+   ```bash
+   pytest
+   ```
+
+6. **Access locally**
    Open your browser and navigate to `http://localhost:5000`
 
 The website will now be running on your local server with a fully populated database! 🎉
 
 ---
 
-> 💡 **Pro Tip**: Start with the [live demo](https://tunicompare.onrender.com/) to get a feel for the platform, then set it up locally if you want to dive into the code and contribute!
+> 💡 **Pro Tip**: Start with the [live demo](https://tunicompare.vercel.app/) to get a feel for the platform, then set it up locally if you want to dive into the code and contribute!
 
 ## 📁 Project Structure
 
