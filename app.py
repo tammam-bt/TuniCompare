@@ -9,7 +9,7 @@ import sqlite3
 
 
 # Built from the CSVs by `python -m Scripts.build_db` and committed alongside the app
-DB_PATH = os.getenv("TUNICOMPARE_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "tunicompare.db"))
+DB_PATH = os.path.abspath(os.getenv("TUNICOMPARE_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "tunicompare.db")))
 
 def connect_read_only():
     # Vercel's filesystem is read-only, so the database is opened read-only and never written to
@@ -17,7 +17,9 @@ def connect_read_only():
 
 # Vercel serves public/** from its CDN, so static files live in public/static and keep their /static URLs
 app = Flask(__name__, static_folder="public/static", static_url_path="/static")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
+# A file URL makes SQLAlchemy give each thread its own connection; "sqlite://" would share one across
+# concurrent requests. The URL only picks the pool, connections still come from connect_read_only.
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": connect_read_only}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)

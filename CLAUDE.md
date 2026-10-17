@@ -47,7 +47,8 @@ Data flows in one direction. The modules live in `Scripts/`, which is a namespac
    - **Tunisianet is the anchor.** Every Tunisianet product gets a matched row, and products sold only by Mytek or Scoop never appear.
 4. **`build_db.py`**: `DB.main` followed by `ProductMatching.main`. This is the entry point for rebuilding.
 5. **Web app** (`app.py`): Flask + Flask-SQLAlchemy.
-   - The DB path is `TUNICOMPARE_DB` (env) or `<repo>/tunicompare.db`. It is opened through a custom `creator` as a SQLite URI with `mode=ro&immutable=1`; `Path.as_uri()` handles spaces in the path.
+   - The DB path is `TUNICOMPARE_DB` (env) or `<repo>/tunicompare.db`, made absolute. It is opened through a custom `creator` as a SQLite URI with `mode=ro&immutable=1`; `Path.as_uri()` handles spaces in the path.
+   - `SQLALCHEMY_DATABASE_URI` is still the file URL `sqlite:///<path>`, because that makes SQLAlchemy use a per-thread pool. Don't change it to `sqlite://`: Flask-SQLAlchemy would then force a single shared connection (`StaticPool`), and concurrent requests return 500s or each other's results. `test_concurrent_*` covers this.
    - Tables are reflected lazily with `automap_base` in `get_models()`. An unreadable DB therefore makes `/load_products` return 503 JSON rather than breaking boot.
    - Pages (`/`, `/shop/laptop|desktop|screen`) are Jinja templates extending `templates/base.html`. The product grids are filled client-side from `GET /load_products?product_type=<pc_portable_gamer|pc_bureau_gamer|ecran_gamer>&limit=&offset=`, which orders by Tunisianet price and returns `{tunisianet, mytek, scoopgaming}` per product (the last two may be `null`).
    - `public/static/JS/product-list.js` does the infinite scroll (IntersectionObserver sentinel) and the best-price highlighting.
