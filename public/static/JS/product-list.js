@@ -117,10 +117,29 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   let loading = false;
+  let queued = false; // a sentinel hit arrived while a load was running
+  let retried = false; // one retry per run of failures, never a loop
+
+  function sentinelInView() {
+    if (!Sentinel) return false;
+    return Sentinel.getBoundingClientRect().top <= window.innerHeight + quarterScreenHeight;
+  }
+
+  // The observer only fires when the sentinel crosses into view. After a failed or
+  // dropped load nothing would fire again, so look at the sentinel once more.
+  function recheckLater() {
+    setTimeout(() => {
+      if (sentinelInView()) loadProducts();
+    }, 1000);
+  }
 
   async function loadProducts() {
-    if (loading) return;
+    if (loading) {
+      queued = true;
+      return;
+    }
     loading = true;
+    let ok = false;
     try {
       const response = await fetch(
         `/load_products?limit=${limit}&offset=${offset}&product_type=${product_type}`
@@ -129,8 +148,10 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Network response was not ok");
       }
       const products = await response.json();
+      ok = true;
       if (products.length === 0) {
         observer.disconnect();
+        queued = false;
         return;
       }
       products.forEach((product) => {
@@ -146,6 +167,16 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error loading products:", error);
     } finally {
       loading = false;
+    }
+    if (ok) {
+      retried = false;
+      if (queued) {
+        queued = false;
+        recheckLater();
+      }
+    } else if (!retried) {
+      retried = true;
+      recheckLater();
     }
   }
 
