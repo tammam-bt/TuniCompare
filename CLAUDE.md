@@ -41,9 +41,16 @@ Data flows in one direction. The modules live in `Scripts/`, which is a namespac
 2. **`DB.py`** (`main(db_path=DB_PATH)`): deletes and recreates the DB, creates the `<site>_<category>` tables (raw DDL strings at the top) and loads the CSVs, normalising prices, resolution and so on.
    - Values are inlined into SQL through `sql_value()`, not bound parameters.
    - Only `Pc Portable Gamer`, `Pc de Bureau Gamer` and `Ecran Gamer` are loaded. The other scraped categories (Casque, Clavier, Souris, Tapis Souris) have CSVs but no tables.
-3. **`ProductMatching.py`** (`main(db_path=DB_PATH)`): for each Tunisianet product, finds the best-scoring Mytek and Scoop Gaming counterparts.
-   - Scoring is thefuzz title matching plus per-category spec comparison (`specs_similarity_*`). A score above 60 counts as a match.
+3. **`ProductMatching.py`** (`main(db_path=DB_PATH)`): pairs each Tunisianet product with at most one Mytek and one Scoop Gaming listing.
+   - `similarity_score` returns 999 when both listings carry the same manufacturer reference (`site_id`).
+   - Otherwise, `spec_conflict` first rejects (score 0) any pair whose known specs disagree. The specs come from the columns and from the titles:
+     - model code, brand, GPU (including Ti/Super/XT), RAM and exact CPU;
+     - screens: panel type;
+     - desktops: GPU memory and monitor bundles. A desktop pair is also rejected unless both sides name the exact CPU.
+   - Pairs that pass are scored as the average of the thefuzz title score and the per-category spec score (`specs_similarity_*`). A score of at least `MATCH_THRESHOLD` (75) counts.
+   - `assign_one_to_one` then takes pairs greedily by score, so a store listing is used for at most one Tunisianet product.
    - Results go to the `matched_<category>` tables, which hold the three links and have foreign keys to the site tables.
+   - `python -m Scripts.eval_matching` prints precision and match counts against the hand labels in `docs/matching-labels.csv`. Label any new pairs after changing the matching (`--unlabelled` lists them).
    - **Tunisianet is the anchor.** Every Tunisianet product gets a matched row, and products sold only by Mytek or Scoop never appear.
 4. **`build_db.py`**: `DB.main` followed by `ProductMatching.main`. This is the entry point for rebuilding.
 5. **Web app** (`app.py`): Flask + Flask-SQLAlchemy.
@@ -61,7 +68,18 @@ Data flows in one direction. The modules live in `Scripts/`, which is a namespac
 
 ## Known issues (deferred)
 
-- **Desktop matching is many-to-one.** 54 Tunisianet desktops match Scoop Gaming's only 2 desktops, and 332 match just 156 Mytek desktops, so many "best price" highlights on the desktop page compare different machines. Likely fix: let each store's product match at most one Tunisianet product, and/or use a stricter threshold.
+- **Matching favours precision over coverage.** It has been one-to-one since October 2026. Against the hand labels, every pair in the DB is labelled:
+  - laptops: 145 of 148 pairs are the same product;
+  - desktops: 27 of 27;
+  - screens: 14 of 14.
+
+  Many real matches are still missing:
+  - Tunisianet often lists one SKU several times (bundles, Windows 11 Pro), and only one of those listings gets the store's price.
+  - Mytek desktop titles name only the CPU generation, so those desktops match only when the CPU column has the exact model.
+  - Some true pairs score just under 75 (Redragon Pearl vs Pearl II).
+  - No Scoop Gaming desktop matches.
+
+  The remaining wrong laptop pairs are the Lenovo LOQ 15IAX9E vs 15IAX9 (one model code extends the other) and an ASUS Flow Z13 whose two titles disagree on the CPU despite a shared reference.
 - About 11% of the 2025 product image URLs, and many product links, now return 404 or 403 from the retailers.
 - The scrapers are unrepaired since summer 2025. Their `main()` functions still write CSVs with Windows-style paths (`f"Main\Products\Tunisianet\{item}.csv"`), which on Linux produce backslash-named files instead of writing into `Main/Products/`. The planned follow-up is to repair them and run them on a schedule with GitHub Actions.
 - `app.py:best_price` is unused and crashes on `None` entries. The best-price logic lives in the JS.

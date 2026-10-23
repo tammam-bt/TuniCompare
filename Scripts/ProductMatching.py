@@ -1,11 +1,14 @@
 #This file contains all the logic necessary to creating a table for each product category.
 #It contains all the matching logic for products, including the logic to match products based on their specifications.
 
+from functools import lru_cache
 from thefuzz import fuzz
 import sqlite3
 import re
 from Scripts.DB import DB_PATH
 
+# A Tunisianet listing and a store listing count as the same product when they score at least this (out of 100)
+MATCH_THRESHOLD = 75
 
 
 def sql_value(val):
@@ -77,6 +80,174 @@ def normalize_string(s):
     s = s.replace("jusqu à", "up to")
     return s
 
+def normalize_gpu(value):
+    """Lowercase with spaces and dashes removed: 'RTX-3050', 'rtx 3050' and 'rtx3050' all become 'rtx3050'."""
+    if value is None:
+        return None
+    return re.sub(r"[\s-]+", "", str(value).lower()) or None
+
+def normalize_cpu(value):
+    """Same as normalize_gpu, after dropping the stray clock digit Mytek appends to desktop Ryzens ('ryzen5-5500-3')."""
+    if value is None:
+        return None
+    return normalize_gpu(re.sub(r"-\d$", "", str(value).strip().lower()))
+
+# Tokens right after a CPU or GPU name ('i5-12450HX', 'Ultra 9 185H', 'RTX 5070Ti') are specs, not model codes
+_CPU_NUMBER = re.compile(r"\b(?:i[3579]|r[3579]|ryzen ?[3579]?|core ?(?:ultra ?)?[3579]?|ultra ?[3579]|ai ?(?:max\+? ?)?[3579]?(?: hx)?)[ -]*(\d[a-z0-9]*)")
+_GPU_NUMBER = re.compile(r"\b(?:rtx|gtx|gt|rx|mx|arc|radeon|vega)[ -]*(\d[a-z0-9]*)")
+# RAM and storage sizes, DDR generations, GPU names, and refresh rate, response time, resolution and curvature values
+_NOT_A_MODEL_CODE = re.compile(r"^(?:\d+(?:go|gb|g|to|tb|mo|mb|hz|ghz|ms|p|r)|(?:lp)?ddr\d+x?|ryzen\d|(?:rtx|gtx|gt|rx|mx)\d+[a-z]*)$")
+
+@lru_cache(maxsize=None)
+def _model_codes(title):
+    text = title.lower()
+    specs = set(_CPU_NUMBER.findall(text)) | set(_GPU_NUMBER.findall(text))
+    return frozenset(
+        token for token in re.findall(r"[a-z0-9]+", text)
+        if len(token) >= 4 and re.search(r"[a-z]", token) and re.search(r"\d", token)
+        and token not in specs and not _NOT_A_MODEL_CODE.match(token)
+    )
+
+def model_codes(title):
+    """Lowercase tokens of 4+ characters mixing letters and digits ('15IAX9', 'GA2711'), minus CPU, GPU, RAM and storage tokens."""
+    return set(_model_codes(title))
+
+def codes_compatible(codes1, codes2):
+    """False when both titles carry model codes and none of them agree. One code may extend the other ('B13U' / 'B13UCX')."""
+    if not codes1 or not codes2:
+        return True
+    return any(code1 in code2 or code2 in code1 for code1 in codes1 for code2 in codes2)
+
+_BRANDS = re.compile(r"\b(asus|msi|hp|lenovo|dell|acer|gigabyte|razer|alienware|samsung|lg|aero|redragon|iiyama|aiwa|cooler master|dahua|philips|aoc|benq|viewsonic|xiaomi)\b")
+
+@lru_cache(maxsize=None)
+def title_brand(title):
+    found = _BRANDS.search(title.lower())
+    return found.group(1) if found else None
+
+@lru_cache(maxsize=None)
+def title_cpu(title):
+    """(family, generation, model) from a title such as 'i5-13420H', 'i7 13è Gén', 'Ultra 9 185H' or 'Ryzen 5 7535HS'.
+    Parts the title doesn't give are None; None overall when no CPU is named."""
+    text = title.lower()
+    found = re.search(r"\bi([3579])[ -]?(\d{4,5})([a-z]*)", text)
+    if found:
+        number = found.group(2)
+        return ("i" + found.group(1), number[:len(number) - 3], number + found.group(3))
+    found = re.search(r"\bi([3579])[ -]?(\d{1,2}) ?(?:è|é|e|th)", text)
+    if found:
+        return ("i" + found.group(1), found.group(2), None)
+    found = re.search(r"\b(ultra|core) ?([3579])[ -]?(\d{3})([a-z]*)", text)
+    if found:
+        return (found.group(1) + found.group(2), found.group(3)[0], found.group(3) + found.group(4))
+    found = re.search(r"\ba[il] ?(max\+?)? ?([3579])? ?(?:hx ?)?(\d{3})?\b", text)  # Ryzen AI 9 HX 370, Ryzen AI MAX+ 395
+    if found and ("ryzen" in text or found.group(3)):
+        family = "ryzenai" + ("max" if found.group(1) else "") + (found.group(2) or "")
+        return (family, None, found.group(3))
+    found = re.search(r"\bryzen ?([3579])\b(?:[ -]?(\d{4})[ -]?([a-z0-9]*))?", text)
+    if found:
+        number = found.group(2)
+        return ("ryzen" + found.group(1), number[0] if number else None, number + found.group(3) if number else None)
+    found = re.search(r"\bi([3579])\b", text)  # 'I5' alone, as Scoop Gaming writes it
+    if found:
+        return ("i" + found.group(1), None, None)
+    return None
+
+def cpus_conflict(cpu1, cpu2):
+    if cpu1 is None or cpu2 is None:
+        return False
+    return any(part1 is not None and part2 is not None and part1 != part2 for part1, part2 in zip(cpu1, cpu2))
+
+def exact_cpu(product):
+    """The exact CPU ('i512400f', 'ryzen57535hs') from the cpu_model column, else from the title; None if neither names the model."""
+    column = normalize_cpu(product["cpu_model"])
+    if column:
+        return column
+    cpu = title_cpu(product["title"])
+    return cpu[0] + cpu[2] if cpu and cpu[2] else None
+
+@lru_cache(maxsize=None)
+def title_gpu(title):
+    """The dedicated GPU named in a title, with its Ti/Super/XT suffix: 'RTX 5060 Ti 8G' gives 'rtx5060ti'."""
+    found = re.search(r"\b(rtx|gtx|gt|rx)[ -]?(\d{3,4})(?:[ -]?(ti|super|xtx|xt))?\b", title.lower())
+    return "".join(part for part in found.groups() if part) if found else None
+
+_GPU_MEMORY_SIZES = {2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32}
+
+@lru_cache(maxsize=None)
+def title_gpu_memory(title):
+    """GPU memory in Go: the first size after the GPU name in its '/' or ',' segment ('RTX 3050 6G', 'RTX5060 Ti 16G')."""
+    for segment in re.split(r"[/,]", title.lower()):
+        gpu = re.search(r"\b(?:rtx|gtx|gt|rx)\b|\b(?:rtx|gtx)\d", segment)
+        if gpu:
+            found = re.search(r"\b(\d{1,2}) ?(?:go|gb|g)\b", segment[gpu.end():])
+            return int(found.group(1)) if found and int(found.group(1)) in _GPU_MEMORY_SIZES else None
+    return None
+
+_RAM_SIZES = {4, 8, 12, 16, 24, 32, 48, 64, 96, 128}
+
+@lru_cache(maxsize=None)
+def title_ram(title):
+    """RAM size in Go from a title. Sizes after a GPU name in the same '/' or ',' segment are GPU memory, and SSD sizes are skipped."""
+    for segment in re.split(r"[/,]", title.lower()):
+        gpu = re.search(r"\b(?:rtx|gtx|gt|rx|radeon|vega|arc)\b|\b(?:rtx|gtx)\d", segment)
+        before_gpu = segment[:gpu.start()] if gpu else segment
+        for found in re.finditer(r"\b(\d{1,3}) ?(?:go|gb|g)\b(?! ?(?:ssd|hdd|nvme|emmc))", before_gpu):
+            if int(found.group(1)) in _RAM_SIZES:
+                return int(found.group(1))
+    return None
+
+def title_panel(title):
+    found = re.search(r"\b(ips|va|tn|oled)\b", title.lower())
+    return found.group(1) if found else None
+
+def is_setup(title):
+    """Tunisianet sells 'Setup' desktops bundled with a monitor."""
+    return bool(re.search(r"\bsetup\b|\bavec [ée]cran\b|\+ ?[ée]cran", title.lower()))
+
+def laptop_brand(product):
+    return title_brand(product["title"]) or product["brand"]
+
+def conflicting(value1, value2):
+    return value1 is not None and value2 is not None and value1 != value2
+
+def conflicting_sources(column1, column2, title1, title2):
+    """Conflict between the columns, between the titles, or between each side's column-else-title value."""
+    return (conflicting(column1, column2) or conflicting(title1, title2)
+            or conflicting(column1 if column1 is not None else title1, column2 if column2 is not None else title2))
+
+def spec_conflict(product1, product2, product_type):
+    """Why two listings can't be the same product, or None. Only specs known on both sides are compared."""
+    title1, title2 = product1["title"], product2["title"]
+    if not codes_compatible(_model_codes(title1), _model_codes(title2)):
+        return "model code"
+    if product_type == "Ecran_Gamer":
+        if conflicting(title_brand(title1), title_brand(title2)):
+            return "brand"
+        if conflicting(title_panel(title1) or product1["panel_type"], title_panel(title2) or product2["panel_type"]):
+            return "panel"
+        return None
+    if product_type == "Pc_Portable_Gamer" and conflicting(laptop_brand(product1), laptop_brand(product2)):
+        return "brand"
+    if conflicting(normalize_gpu(product1["gpu_model"]), normalize_gpu(product2["gpu_model"])) or conflicting(title_gpu(title1), title_gpu(title2)):
+        return "gpu"
+    # Store-built desktops pair one GPU with several memory sizes (RTX 3050 6G/8G, RTX 5060 Ti 8G/16G).
+    # A laptop's model fixes its GPU memory, and the laptop gpu_memory columns are unreliable, so laptops skip this check
+    if product_type == "Pc_Bureau_Gamer" and conflicting_sources(
+            product1["gpu_memory"], product2["gpu_memory"], title_gpu_memory(title1), title_gpu_memory(title2)):
+        return "gpu memory"
+    if conflicting_sources(product1["ram_size"], product2["ram_size"], title_ram(title1), title_ram(title2)):
+        return "ram"
+    cpu1, cpu2 = exact_cpu(product1), exact_cpu(product2)
+    if conflicting(cpu1, cpu2) or cpus_conflict(title_cpu(title1), title_cpu(title2)):
+        return "cpu"
+    if product_type == "Pc_Bureau_Gamer":
+        if cpu1 is None or cpu2 is None:
+            return "cpu unknown"  # store-built desktops can only be compared when both name the exact CPU
+        if is_setup(title1) != is_setup(title2):
+            return "monitor bundle"
+    return None
+
 def specs_similarity_ecran(specs1, specs2):
     """
     Calculate the similarity score between two ecran specifications.
@@ -123,7 +294,7 @@ def specs_similarity_pc_bureau(specs1, specs2):
     Calculate the similarity score between two pc bureau specifications.
     """
     score = 0
-    max_score = 75  # Maximum score for PC Bureau specifications
+    max_score = 105  # Sum of the points below, so a full match scores 100%
     print(f"Specs1: {specs1['cpu_brand']} {specs1['cpu_model']}, Specs2: {specs2['cpu_brand']} {specs2['cpu_model']}")
     if specs1["cpu_brand"] != None and specs2["cpu_brand"] != None:
         if specs1["cpu_brand"] == specs2["cpu_brand"]:
@@ -161,25 +332,26 @@ def specs_similarity_pc_bureau(specs1, specs2):
     if specs1["gpu_brand"] != None and specs2["gpu_brand"] != None:
         if specs1["gpu_brand"] == specs2["gpu_brand"]:
             score += 10
-            if specs1["gpu_model"] != None and specs2["gpu_model"] != None:
-                if fuzz.token_set_ratio(specs1["gpu_model"].replace("-", ""), specs2["gpu_model"].replace("-", "")) > 90:
-                    score += 20
-                    if specs1["gpu_memory"] != None and specs2["gpu_memory"] != None:
-                        if specs1["gpu_memory"] == specs2["gpu_memory"]:
-                            score += 10
-                    else:
-                        max_score -= 10
-                else:
-                    print("GPU Model mismatch")
-                    print(f"Specs1: {specs1['gpu_model']}, Specs2: {specs2['gpu_model']}")
-                    return 0
-            else:
-                max_score -= 20  # Deduct points if GPU model is missing
         else:
-            print("GPU Brand or Model mismatch")
-            return 0  
+            print("GPU Brand mismatch")
+            return 0
     else:
-        max_score -= 10        
+        max_score -= 10
+    # The GPU model is compared even when a brand is missing (Tunisianet often leaves it empty)
+    if specs1["gpu_model"] != None and specs2["gpu_model"] != None:
+        if normalize_gpu(specs1["gpu_model"]) == normalize_gpu(specs2["gpu_model"]):
+            score += 20
+            if specs1["gpu_memory"] != None and specs2["gpu_memory"] != None:
+                if specs1["gpu_memory"] == specs2["gpu_memory"]:
+                    score += 10
+            else:
+                max_score -= 10
+        else:
+            print("GPU Model mismatch")
+            print(f"Specs1: {specs1['gpu_model']}, Specs2: {specs2['gpu_model']}")
+            return 0
+    else:
+        max_score -= 30  # GPU model and memory unknown
     print(f"Specs1: {specs1['storage_type']} {specs1['storage_size']}, Specs2: {specs2['storage_type']} {specs2['storage_size']}")                  
     if specs1["storage_type"] != None and specs2["storage_type"] != None:
         if specs1["storage_type"] == specs2["storage_type"]:
@@ -205,14 +377,16 @@ def specs_similarity_pc_portable(specs1, specs2):
     Calculate the similarity score between two products specifications.
     """
     score = 0
-    if specs1["brand"] != None and specs2["brand"] != None and fuzz.token_set_ratio(specs1["brand"], specs2["brand"]) > 90:
+    # The brand column is often empty, so the brand named in the title is used first
+    brand1, brand2 = laptop_brand(specs1), laptop_brand(specs2)
+    if brand1 != None and brand2 != None and fuzz.token_set_ratio(brand1, brand2) > 90:
         score += 10
     else:
         return 0
     if specs1["cpu_brand"] != None and specs2["cpu_brand"] != None:
         if specs1["cpu_brand"] == specs2["cpu_brand"]:
             score += 10
-            if specs1["cpu_model"] != None and specs2["cpu_model"] != None and specs1["cpu_model"] == specs2["cpu_model"]:
+            if specs1["cpu_model"] != None and specs2["cpu_model"] != None and normalize_cpu(specs1["cpu_model"]) == normalize_cpu(specs2["cpu_model"]):
                 score += 20
             if specs1["cpu_cores"] != None and specs2["cpu_cores"] != None and specs1["cpu_cores"] == specs2["cpu_cores"]:
                 score += 5
@@ -226,7 +400,7 @@ def specs_similarity_pc_portable(specs1, specs2):
     if specs1["gpu_brand"] != None and specs2["gpu_brand"] != None:
         if specs1["gpu_brand"] == specs2["gpu_brand"]:
             score += 10
-            if specs1["gpu_model"] != None and specs2["gpu_model"] != None and specs1["gpu_model"] == specs2["gpu_model"]:
+            if specs1["gpu_model"] != None and specs2["gpu_model"] != None and normalize_gpu(specs1["gpu_model"]) == normalize_gpu(specs2["gpu_model"]):
                 score += 20
                 if specs1["gpu_memory"] != None and specs2["gpu_memory"] != None and specs1["gpu_memory"] == specs2["gpu_memory"]:
                     score += 10
@@ -249,8 +423,10 @@ def similarity_score(product1, product2, product_type = "Pc_Portable_Gamer"):
     Calculate the similarity score between two titles.
     """
     if product1["site_id"] == product2["site_id"]:
-        return 999
-    
+        return 999  # Both stores give the same manufacturer reference
+    if spec_conflict(product1, product2, product_type):
+        return 0
+
     # Normalize the titles
     norm_title1 = normalize_string(product1['title'])
     # print(f"Normalized Title 1: {norm_title1}")
@@ -263,8 +439,10 @@ def similarity_score(product1, product2, product_type = "Pc_Portable_Gamer"):
     # print(f"Fuzz Score: {fuzzscore}")
     if product_type == "Pc_Bureau_Gamer":
         specs_score = specs_similarity_pc_bureau(product1, product2)  # Example specs comparison, replace with actual specs extraction logic
-        return specs_score
-    elif product_type == "Pc_Portable_Gamer":    
+        if specs_score == 0:
+            return 0
+        return (fuzzscore + specs_score) / 2
+    elif product_type == "Pc_Portable_Gamer":
         specs_score = specs_similarity_pc_portable(product1, product2)  # Example specs comparison, replace with actual specs extraction logic
         if specs_score == 0:
             return 0
@@ -274,6 +452,29 @@ def similarity_score(product1, product2, product_type = "Pc_Portable_Gamer"):
     elif product_type == "Ecran_Gamer":
         specs_score = specs_similarity_ecran(product1, product2)  # Example specs comparison, replace with actual specs extraction logic
         return (fuzzscore + specs_score) / 2
+
+def assign_one_to_one(scored):
+    """Greedy one-to-one assignment over (score, tunisianet_link, store_link) pairs.
+    Pairs are taken by score, highest first (ties by link, so builds are reproducible), and a pair is accepted
+    only if its Tunisianet link and its store link are both still free. Returns {tunisianet_link: (store_link, score)}."""
+    assigned = {}
+    taken = set()
+    for score, tunisianet_link, store_link in sorted(scored, key=lambda pair: (-pair[0], pair[1], pair[2])):
+        if tunisianet_link in assigned or store_link in taken:
+            continue
+        assigned[tunisianet_link] = (store_link, score)
+        taken.add(store_link)
+    return assigned
+
+def match_store(tunisianet_products, store_products, product_type):
+    """One-to-one matches between Tunisianet and one store, among pairs scoring at least MATCH_THRESHOLD."""
+    scored = []
+    for product1 in tunisianet_products:
+        for product2 in store_products:
+            score = similarity_score(product1, product2, product_type)
+            if score >= MATCH_THRESHOLD:
+                scored.append((score, product1["link"], product2["link"]))
+    return assign_one_to_one(scored)
 
 def Create_Table(cursor, query):
     # Create a table in the database
@@ -343,7 +544,6 @@ def main(db_path=DB_PATH):
 
 
     # Iterate through each product type
-    i = 0
     for product_type in product_types:
         # Get the products for each type
         if product_type == "Pc_Portable_Gamer":
@@ -359,44 +559,14 @@ def main(db_path=DB_PATH):
             Tunisianet_Products = Tunisianet_Ecran_Gamer
             ScoopGaming_Products = ScoopGaming_Ecran_Gamer
 
-        # Match products from Tunisianet with Mytek
+        # Each store listing is matched to at most one Tunisianet listing, and vice versa
+        Mytek_Matches = match_store(Tunisianet_Products, Mytek_Products, product_type)
+        ScoopGaming_Matches = match_store(Tunisianet_Products, ScoopGaming_Products, product_type)
+        # Every Tunisianet product still gets a row; unmatched stores stay NULL
         for product1 in Tunisianet_Products:
-            Mytek = False
-            ScoopGaming = False
-            print(f"Matching product: {product1['title']}")
-            max_similarity = 0
-            similar_product2 = None
-            for product2 in Mytek_Products:
-                score = similarity_score(product1, product2, product_type)
-                if score >= max_similarity:  # Adjust threshold as needed
-                    max_similarity = score
-                    similar_product2 = product2
-            if max_similarity > 60:  # Adjust threshold as needed
-                print(f"Matched from Tunisianet {product1['link']} \nwith from Mytek {similar_product2['link']} \nwith a score of {max_similarity}")
-                Mytek = True
-                # Matched Tunisianet with mytek
-                # Let's try to match iwth ScoopGaming
-            else:
-                print(f"No match found for {product1['link']} with Mytek products.")
-                print("Max Similarity: " + str(max_similarity))
-            max_similarity = 0
-            similar_product3 = None
-            for product3 in ScoopGaming_Products:
-                score = similarity_score(product1, product3, product_type)
-                if score >= max_similarity:  # Adjust threshold as needed
-                    max_similarity = score
-                    similar_product3 = product3
-            if max_similarity > 60:  # Adjust threshold as needed
-                print(f"Matched from Tunisianet {product1['link']} \nwith from ScoopGaming {similar_product3['link']} \nwith a score of {max_similarity}")
-                ScoopGaming = True
-            else:
-                print(f"No match found for {product1['link']} with ScoopGaming products.")
-                print("Max Similarity: " + str(max_similarity))
-            i += 1 if Mytek else 0
-            i += 1 if ScoopGaming else 0    
-            Insert_Product(cursor, product_type, product1['link'], similar_product2['link'] if Mytek else None, similar_product3['link'] if ScoopGaming else None)    
-            print("----" * 50)
-        print(f"Total products matched for {product_type}: {i}")
+            link = product1['link']
+            Insert_Product(cursor, product_type, link, Mytek_Matches.get(link, (None,))[0], ScoopGaming_Matches.get(link, (None,))[0])
+        print(f"Total products matched for {product_type}: {len(Mytek_Matches)} with Mytek, {len(ScoopGaming_Matches)} with ScoopGaming")
         Cleaning_Query = "DELETE FROM Matched_" + product_type + " WHERE linkTunisianet NOT IN (SELECT linktunisianet FROM Tunisianet_" + product_type + ");"
         cursor.execute(Cleaning_Query)
     DB.commit()
