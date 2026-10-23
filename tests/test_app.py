@@ -156,13 +156,15 @@ def test_load_products_includes_store_images(client, product_type, count):
 
 @pytest.mark.parametrize("product_type,count", PRODUCT_COUNTS)
 def test_paging_has_no_duplicates_or_gaps(client, product_type, count):
-    links = []
+    keys = []
     offset = 0
     while True:
         page = load(client, product_type, limit=5, offset=offset).get_json()
         if not page:
             break
-        links += [product["tunisianet"]["link"] for product in page]
+        keys += [(product["tunisianet"]["price"], product["tunisianet"]["link"]) for product in page]
         offset += 5
-    assert len(links) == count
-    assert len(set(links)) == count
+    assert len(keys) == count
+    assert len({link for _, link in keys}) == count
+    # Strictly increasing (price, link): ties on price are ordered deterministically by link
+    assert all(a < b for a, b in zip(keys, keys[1:]))
