@@ -1,5 +1,16 @@
 const limit = 5;
-let offset = 5;
+let offset = 0;
+
+const NO_IMAGE = "/static/Resources/no-image.svg";
+
+// Tunisianet -> Mytek -> Scoop -> placeholder, one hop per load error
+function attachImageFallback(img, product) {
+  const chain = [product["mytek"]?.["image"], product["scoopgaming"]?.["image"], NO_IMAGE].filter(Boolean);
+  img.addEventListener("error", () => {
+    const next = chain.shift();
+    if (next) img.src = next;
+  });
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const productList = document.getElementById("product-list");
@@ -35,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (product["mytek"]) {
       mytek = `
-          <a href="${product["mytek"]["link"]}" class="product-link ${
+          <a href="${product["mytek"]["link"]}" target="_blank" rel="noopener noreferrer" class="product-link ${
         best_price === product["mytek"]["price"] ? "best-price" : ""
       }">
               <img src="${MytekLogo}" alt="Mytek Logo" class="price-logo-img">
@@ -55,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (product["scoopgaming"]) {
       scoopgaming = `
-          <a href="${product["scoopgaming"]["link"]}" class="product-link ${
+          <a href="${product["scoopgaming"]["link"]}" target="_blank" rel="noopener noreferrer" class="product-link ${
         best_price === product["scoopgaming"]["price"] ? "best-price" : ""
       }">
               <img src="${ScoopGamingLogo}" alt="ScoopGaming Logo" class="price-logo-img">
@@ -74,9 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
     card.innerHTML = `
         <div class="product-card-div">
             <div class="product-img-div">
-                <img src="${product["tunisianet"]["image"]}" alt="${
-      product["tunisianet"]["title"]
-    }" class="product-img">
+                <img src="${product["tunisianet"]["image"]}" alt="${product["tunisianet"]["title"]}" class="product-img">
             </div>
             <div class="product-title-div">
                 <h3 class="product-title">${product["tunisianet"]["title"]}</h3>
@@ -85,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="price-item">
                     <a href="${
                       product["tunisianet"]["link"]
-                    }" class="product-link ${
+                    }" target="_blank" rel="noopener noreferrer" class="product-link ${
       best_price === product["tunisianet"]["price"] ? "best-price" : ""
     }">
                         <img src="${TunisianetLogo}" alt="Tunisianet Logo" class="price-logo-img">
@@ -103,30 +112,41 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>    
         </div>
     `;
+    attachImageFallback(card.querySelector(".product-img"), product);
     return card;
   }
 
-  async function loadProducts() {
-    const response = await fetch(
-      `/load_products?limit=${limit}&offset=${offset}&product_type=${product_type}`
-    );
-    const products = await response.json();
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-    if (products.length === 0) {
-      observer.disconnect();
-      return;
-    }
-    products.forEach((product) => {
-      console.log(product);
-      const productCard = createProductCard(product);
-      console.log(product["Title"]);
-      // Assuming each item has a 'product_name' property
-      productList.appendChild(productCard);
-    });
+  let loading = false;
 
-    offset += limit;
+  async function loadProducts() {
+    if (loading) return;
+    loading = true;
+    try {
+      const response = await fetch(
+        `/load_products?limit=${limit}&offset=${offset}&product_type=${product_type}`
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const products = await response.json();
+      if (products.length === 0) {
+        observer.disconnect();
+        return;
+      }
+      products.forEach((product) => {
+        console.log(product);
+        const productCard = createProductCard(product);
+        console.log(product["Title"]);
+        // Assuming each item has a 'product_name' property
+        productList.appendChild(productCard);
+      });
+
+      offset += limit;
+    } catch (error) {
+      console.error("Error loading products:", error);
+    } finally {
+      loading = false;
+    }
   }
 
   const quarterScreenHeight = window.innerHeight / 4;

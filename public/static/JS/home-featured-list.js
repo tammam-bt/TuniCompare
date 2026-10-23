@@ -5,6 +5,17 @@ const product_types = ["pc_portable_gamer", "pc_bureau_gamer", "ecran_gamer"];
 const product_type =
   product_types[Math.floor(Math.random() * product_types.length)];
 
+const NO_IMAGE = "/static/Resources/no-image.svg";
+
+// Tunisianet -> Mytek -> Scoop -> placeholder, one hop per load error
+function attachImageFallback(img, product) {
+  const chain = [product["mytek"]?.["image"], product["scoopgaming"]?.["image"], NO_IMAGE].filter(Boolean);
+  img.addEventListener("error", () => {
+    const next = chain.shift();
+    if (next) img.src = next;
+  });
+}
+
 async function fetchFeaturedProducts() {
   const response = await fetch(
     `/load_products?limit=${limit}&offset=${offset}&product_type=${product_type}`
@@ -42,7 +53,7 @@ function createProductCard(product) {
 
   if (product["mytek"]) {
     mytek = `
-          <a href="${product["mytek"]["link"]}" class="product-link ${
+          <a href="${product["mytek"]["link"]}" target="_blank" rel="noopener noreferrer" class="product-link ${
       best_price === product["mytek"]["price"] ? "best-price" : ""
     }">
               <img src="${MytekLogo}" alt="Mytek Logo" class="price-logo-img">
@@ -60,7 +71,7 @@ function createProductCard(product) {
   }
   if (product["scoopgaming"]) {
     scoopgaming = `
-          <a href="${product["scoopgaming"]["link"]}" class="product-link ${
+          <a href="${product["scoopgaming"]["link"]}" target="_blank" rel="noopener noreferrer" class="product-link ${
       best_price === product["scoopgaming"]["price"] ? "best-price" : ""
     }">
               <img src="${ScoopGamingLogo}" alt="ScoopGaming Logo" class="price-logo-img">
@@ -79,9 +90,7 @@ function createProductCard(product) {
   card.innerHTML = `
         <div class="product-card-div">
             <div class="product-img-div">
-                <img src="${product["tunisianet"]["image"]}" alt="${
-    product["tunisianet"]["title"]
-  }" class="product-img">
+                <img src="${product["tunisianet"]["image"]}" alt="${product["tunisianet"]["title"]}" class="product-img">
             </div>
             <div class="product-title-div">
                 <h3 class="product-title">${product["tunisianet"]["title"]}</h3>
@@ -90,7 +99,7 @@ function createProductCard(product) {
                 <div class="price-item">
                     <a href="${
                       product["tunisianet"]["link"]
-                    }" class="product-link ${
+                    }" target="_blank" rel="noopener noreferrer" class="product-link ${
     best_price === product["tunisianet"]["price"] ? "best-price" : ""
   }">
                         <img src="${TunisianetLogo}" alt="Tunisianet Logo" class="price-logo-img">
@@ -108,6 +117,7 @@ function createProductCard(product) {
             </div>    
         </div>
     `;
+  attachImageFallback(card.querySelector(".product-img"), product);
   return card;
 }
 

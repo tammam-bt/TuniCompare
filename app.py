@@ -66,10 +66,10 @@ def get_product(session, Table, link_, website):
         result = session.query(Table.link, Table.title, Table.image, Table.price).filter_by(link=link_).first()
         dict_ = dict(result._mapping) if result else None
     elif website == "mytek":
-        result = session.query(Table.link, Table.price).filter_by(link=link_).first()
+        result = session.query(Table.link, Table.image, Table.price).filter_by(link=link_).first()
         dict_ = dict(result._mapping) if result else None
     elif website == "scoopgaming":
-        result = session.query(Table.link, Table.price).filter_by(link=link_).first()
+        result = session.query(Table.link, Table.image, Table.price).filter_by(link=link_).first()
         dict_ = dict(result._mapping) if result else None
     return dict_
 
@@ -82,7 +82,7 @@ def get_products(session, product_type, limit=5, offset=0):
     Mytek = models[f"mytek_{product_type}"]
     ScoopGaming = models[f"scoopgaming_{product_type}"]
     products = session.query(Matched).join(Tunisianet).order_by(
-        Tunisianet.price.asc()
+        Tunisianet.price.asc(), Tunisianet.link.asc()
     ).limit(limit).offset(offset).all()
     for product in products:
         product_dict = {"tunisianet" : get_product(session, Tunisianet, product.linktunisianet, "tunisianet") if product.linktunisianet else None,

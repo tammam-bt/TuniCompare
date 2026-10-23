@@ -143,3 +143,26 @@ def test_relative_db_path(make_client, built_db, monkeypatch):
     response = load(client, "ecran_gamer", limit=1000)
     assert response.status_code == 200
     assert len(response.get_json()) == 32
+
+
+@pytest.mark.parametrize("product_type,count", PRODUCT_COUNTS)
+def test_load_products_includes_store_images(client, product_type, count):
+    products = load(client, product_type, limit=1000, offset=0).get_json()
+    for product in products:
+        for store in ("tunisianet", "mytek", "scoopgaming"):
+            if product[store] is not None:
+                assert "image" in product[store]
+
+
+@pytest.mark.parametrize("product_type,count", PRODUCT_COUNTS)
+def test_paging_has_no_duplicates_or_gaps(client, product_type, count):
+    links = []
+    offset = 0
+    while True:
+        page = load(client, product_type, limit=5, offset=offset).get_json()
+        if not page:
+            break
+        links += [product["tunisianet"]["link"] for product in page]
+        offset += 5
+    assert len(links) == count
+    assert len(set(links)) == count
