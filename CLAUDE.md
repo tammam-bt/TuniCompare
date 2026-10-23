@@ -42,13 +42,22 @@ Data flows in one direction. The modules live in `Scripts/`, which is a namespac
    - Values are inlined into SQL through `sql_value()`, not bound parameters.
    - Only `Pc Portable Gamer`, `Pc de Bureau Gamer` and `Ecran Gamer` are loaded. The other scraped categories (Casque, Clavier, Souris, Tapis Souris) have CSVs but no tables.
 3. **`ProductMatching.py`** (`main(db_path=DB_PATH)`): pairs each Tunisianet product with at most one Mytek and one Scoop Gaming listing.
-   - `similarity_score` returns 999 when both listings carry the same manufacturer reference (`site_id`).
-   - Otherwise, `spec_conflict` first rejects (score 0) any pair whose known specs disagree. The specs come from the columns and from the titles:
+   - `similarity_score` first returns 0 when only one side sells the PC with a Windows licence (`windows_bundle`):
+     - "Windows 11 Pro" in the title;
+     - "W11P" in the ref;
+     - a Tunisianet ref segment `-W` / `-WW`.
+
+     The site compares prices, so a bundle and the bare PC are different offers.
+   - It returns 999 when both listings carry the same manufacturer reference (`site_id`).
+   - Otherwise, `spec_conflict` rejects (score 0) any pair whose known specs disagree. The specs come from the columns and from the titles:
      - model code, brand, GPU (including Ti/Super/XT), RAM and exact CPU;
      - screens: panel type;
-     - desktops: GPU memory and monitor bundles. A desktop pair is also rejected unless both sides name the exact CPU.
+     - desktops: GPU memory, RAM type (DDR4/DDR5) and monitor bundles. A desktop pair is also rejected unless both sides name the exact CPU.
    - Pairs that pass are scored as the average of the thefuzz title score and the per-category spec score (`specs_similarity_*`). A score of at least `MATCH_THRESHOLD` (75) counts.
-   - `assign_one_to_one` then takes pairs greedily by score, so a store listing is used for at most one Tunisianet product.
+   - `assign_one_to_one` then takes pairs greedily by score, so a store listing is used for at most one Tunisianet product. Equal scores go:
+     1. first to the pair whose Windows bundle status agrees;
+     2. then to the smaller price gap;
+     3. then by link.
    - Results go to the `matched_<category>` tables, which hold the three links and have foreign keys to the site tables.
    - `python -m Scripts.eval_matching` prints precision and match counts against the hand labels in `docs/matching-labels.csv`. Label any new pairs after changing the matching (`--unlabelled` lists them).
    - **Tunisianet is the anchor.** Every Tunisianet product gets a matched row, and products sold only by Mytek or Scoop never appear.
@@ -69,14 +78,20 @@ Data flows in one direction. The modules live in `Scripts/`, which is a namespac
 ## Known issues (deferred)
 
 - **Matching favours precision over coverage.** It has been one-to-one since October 2026. Against the hand labels, every pair in the DB is labelled:
-  - laptops: 145 of 148 pairs are the same product;
-  - desktops: 27 of 27;
+  - laptops: 145 of 148 pairs are the same offer;
+  - desktops: 25 of 25;
   - screens: 14 of 14.
 
+  A Windows bundle counts as a different offer; accessory bundles (antivirus, bag, mouse, Mytek's `-K` refs) do not.
+
   Many real matches are still missing:
-  - Tunisianet often lists one SKU several times (bundles, Windows 11 Pro), and only one of those listings gets the store's price.
+  - Tunisianet often lists one SKU several times (accessory bundles, build variants such as `-S`), and only one of those listings gets the store's price.
   - Mytek desktop titles name only the CPU generation, so those desktops match only when the CPU column has the exact model.
-  - Some true pairs score just under 75 (Redragon Pearl vs Pearl II).
+  - Some true pairs score just under 75:
+    - Redragon Pearl vs Pearl II;
+    - Dell G15 5530 (74.98);
+    - HP Victus 15-fa1006nk 16 Go (72.88).
+  - Mytek parses the Lenovo R25f-30 screen's size as 30".
   - No Scoop Gaming desktop matches.
 
   The remaining wrong laptop pairs are the Lenovo LOQ 15IAX9E vs 15IAX9 (one model code extends the other) and an ASUS Flow Z13 whose two titles disagree on the CPU despite a shared reference.

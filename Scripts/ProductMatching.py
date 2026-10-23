@@ -205,8 +205,26 @@ def is_setup(title):
     """Tunisianet sells 'Setup' desktops bundled with a monitor."""
     return bool(re.search(r"\bsetup\b|\bavec [ée]cran\b|\+ ?[ée]cran", title.lower()))
 
+_WINDOWS_PRO = re.compile(r"w11 ?p|windows 11 pro|win ?11 ?pro")
+# Tunisianet also marks a Windows licence with a '-W' or '-WW' ref segment. Its laptops with that segment all say
+# 'Windows 11 Pro' in the title; its desktops keep the plain build's title and cost 140 to 450 DT more
+_WINDOWS_REF_SEGMENT = re.compile(r"(?:^|-)ww?(?=-|$)")
+
+def windows_bundle(product):
+    """True when the offer includes a Windows licence the store adds: 'Windows 11 Pro' in the title, or a ref with
+    'W11P' or a '-W'/'-WW' segment. Mytek marks it only in the ref ('[BU-...-W11P]'). Unmarked listings are plain offers."""
+    ref = (product["site_id"] or "").strip("[] ").lower()
+    return bool(_WINDOWS_PRO.search(f"{product['title']} {ref}".lower()) or _WINDOWS_REF_SEGMENT.search(ref))
+
 def laptop_brand(product):
     return title_brand(product["title"]) or product["brand"]
+
+def desktop_ram_type(product):
+    """'ddr4' or 'ddr5', from the title ('32 Go DDR5'), else the ram_type column."""
+    found = re.search(r"\bddr(\d)\b", product["title"].lower())
+    if found:
+        return "ddr" + found.group(1)
+    return (product["ram_type"] or "").strip().lower() or None
 
 def conflicting(value1, value2):
     return value1 is not None and value2 is not None and value1 != value2
@@ -244,6 +262,10 @@ def spec_conflict(product1, product2, product_type):
     if product_type == "Pc_Bureau_Gamer":
         if cpu1 is None or cpu2 is None:
             return "cpu unknown"  # store-built desktops can only be compared when both name the exact CPU
+        # Tunisianet sells DDR4 and DDR5 builds of one desktop under the same headline specs. The laptop ram_type
+        # columns are unreliable (GDDR6 read as 'ddr6'), so only desktops compare it
+        if conflicting(desktop_ram_type(product1), desktop_ram_type(product2)):
+            return "ram type"
         if is_setup(title1) != is_setup(title2):
             return "monitor bundle"
     return None
@@ -422,6 +444,9 @@ def similarity_score(product1, product2, product_type = "Pc_Portable_Gamer"):
     """
     Calculate the similarity score between two titles.
     """
+    # The site compares prices, so the same PC with and without a store-added Windows licence is two different offers
+    if windows_bundle(product1) != windows_bundle(product2):
+        return 0
     if product1["site_id"] == product2["site_id"]:
         return 999  # Both stores give the same manufacturer reference
     if spec_conflict(product1, product2, product_type):
@@ -453,13 +478,19 @@ def similarity_score(product1, product2, product_type = "Pc_Portable_Gamer"):
         specs_score = specs_similarity_ecran(product1, product2)  # Example specs comparison, replace with actual specs extraction logic
         return (fuzzscore + specs_score) / 2
 
-def assign_one_to_one(scored):
+def assign_one_to_one(scored, tie_break=None):
     """Greedy one-to-one assignment over (score, tunisianet_link, store_link) pairs.
-    Pairs are taken by score, highest first (ties by link, so builds are reproducible), and a pair is accepted
-    only if its Tunisianet link and its store link are both still free. Returns {tunisianet_link: (store_link, score)}."""
+    Pairs are taken by score, highest first, and a pair is accepted only if its Tunisianet link and its store link
+    are both still free. Equal scores are ordered by tie_break(tunisianet_link, store_link) when given, smallest
+    first, then by link, so builds are reproducible. Returns {tunisianet_link: (store_link, score)}."""
+    def order(pair):
+        score, tunisianet_link, store_link = pair
+        extra = tie_break(tunisianet_link, store_link) if tie_break else ()
+        return (-score, *extra, tunisianet_link, store_link)
+
     assigned = {}
     taken = set()
-    for score, tunisianet_link, store_link in sorted(scored, key=lambda pair: (-pair[0], pair[1], pair[2])):
+    for score, tunisianet_link, store_link in sorted(scored, key=order):
         if tunisianet_link in assigned or store_link in taken:
             continue
         assigned[tunisianet_link] = (store_link, score)
@@ -474,7 +505,17 @@ def match_store(tunisianet_products, store_products, product_type):
             score = similarity_score(product1, product2, product_type)
             if score >= MATCH_THRESHOLD:
                 scored.append((score, product1["link"], product2["link"]))
-    return assign_one_to_one(scored)
+    tunisianet = {product["link"]: product for product in tunisianet_products}
+    store = {product["link"]: product for product in store_products}
+
+    def tie_break(tunisianet_link, store_link):
+        # Tunisianet often lists one laptop several times (bundles, Windows 11 Pro) under titles that score the same:
+        # prefer the listing whose bundle matches the store's, then the closest price
+        product1, product2 = tunisianet[tunisianet_link], store[store_link]
+        price_gap = abs(product1["price"] - product2["price"]) if product1["price"] is not None and product2["price"] is not None else float("inf")
+        return (windows_bundle(product1) != windows_bundle(product2), price_gap)
+
+    return assign_one_to_one(scored, tie_break)
 
 def Create_Table(cursor, query):
     # Create a table in the database

@@ -49,6 +49,62 @@ def test_assign_one_to_one():
     assert ProductMatching.assign_one_to_one(scored) == {"a": ("x", 90), "b": ("y", 80)}
 
 
+def test_assign_one_to_one_tie_break():
+    scored = [(80, "a", "x"), (80, "b", "x")]
+    # Without a tie-break, equal scores go by link; the tie-break comes first when given
+    assert ProductMatching.assign_one_to_one(scored) == {"a": ("x", 80)}
+    assert ProductMatching.assign_one_to_one(scored, lambda t, s: (t != "b",)) == {"b": ("x", 80)}
+
+
+def test_windows_bundle_rejected():
+    plain = laptop()
+    bundle = laptop(title=plain["title"] + " / Windows 11 Pro", link="https://example.test/b", site_id="[B-W11P]")
+    # Mytek marks the bundle only in its ref
+    store_bundle = laptop(link="https://example.test/c", site_id="[BU-C-W11P]")
+    store_plain = laptop(link="https://example.test/d", site_id="[D]")
+    assert ProductMatching.windows_bundle(bundle) and ProductMatching.windows_bundle(store_bundle)
+    assert not ProductMatching.windows_bundle(plain)
+    # Tunisianet's '-W' / '-WW' ref segment; a W inside a manufacturer part number is not one
+    desktop = {"title": "Pc de bureau Gamer ELITE / Ryzen 5 5500 / RTX 5060 8G / 32 Go", "site_id": "[ELITE-735-32G-W]"}
+    assert ProductMatching.windows_bundle(desktop)
+    assert ProductMatching.windows_bundle({**desktop, "site_id": "[ELITE-743-32G-SS-WW]"})
+    assert not ProductMatching.windows_bundle({**desktop, "site_id": "[ELITE-735-32G]"})
+    assert not ProductMatching.windows_bundle({"title": "ASUS TUF A15 / Windows 11", "site_id": "[FA506NFR-HN005W-16G]"})
+    assert ProductMatching.similarity_score(plain, store_bundle, "Pc_Portable_Gamer") == 0
+    assert ProductMatching.similarity_score(bundle, store_plain, "Pc_Portable_Gamer") == 0
+    assert ProductMatching.similarity_score(bundle, store_bundle, "Pc_Portable_Gamer") >= ProductMatching.MATCH_THRESHOLD
+    assert ProductMatching.similarity_score(plain, store_plain, "Pc_Portable_Gamer") >= ProductMatching.MATCH_THRESHOLD
+
+
+def desktop(**overrides):
+    product = {
+        "title": "Pc de bureau Gamer ELITE / i7-12700F / RTX 5070 12G / 32 Go", "link": "https://example.test/t",
+        "site_id": "[ELITE-780-32G]", "price": 4039, "cpu_brand": "Intel", "cpu_model": "i7-12700f", "cpu_cores": None,
+        "ram_size": 32, "ram_type": "ddr4", "gpu_brand": None, "gpu_model": "rtx-5070", "gpu_memory": 12,
+        "storage_type": "ssd", "storage_size": 1024,
+    }
+    product.update(overrides)
+    return product
+
+
+def test_desktop_ram_type_rejected():
+    mytek = desktop(title="Pc de Bureau Gamer MYTEK i7 12è Gén 32Go RTX5070 12G", link="https://example.test/m",
+                    site_id="[ALIEN-12700-5070]", price=4699, ram_size=None, gpu_brand="nvidia", gpu_memory=None)
+    ddr5 = desktop(title="Pc de bureau Gamer ELITE / i7-12700F / RTX 5070 12G / 32 Go DDR5", site_id="[ELITE-780-32G-DDR5]",
+                   ram_type="ddr5")
+    assert ProductMatching.similarity_score(desktop(), mytek, "Pc_Bureau_Gamer") >= ProductMatching.MATCH_THRESHOLD
+    assert ProductMatching.similarity_score(ddr5, mytek, "Pc_Bureau_Gamer") == 0
+
+
+def test_match_store_prefers_closest_price():
+    # Two Tunisianet listings of the same laptop score the same against one store listing
+    cheap = laptop(link="https://example.test/a", site_id="[A]", price=2124)
+    equal = laptop(link="https://example.test/b", site_id="[B]", price=2229)
+    store = laptop(link="https://example.test/x", site_id="[X]", price=2229)
+    matches = ProductMatching.match_store([cheap, equal], [store], "Pc_Portable_Gamer")
+    assert {link: store_link for link, (store_link, _) in matches.items()} == {"https://example.test/b": "https://example.test/x"}
+
+
 # The DB checks run on a fresh build from the CSVs and on the committed tunicompare.db, which Vercel serves
 @pytest.fixture(params=["built", "committed"])
 def db_path(request):
@@ -85,12 +141,38 @@ def test_db_pairs_agree_on_known_specs(db_path, type_):
     assert conflicts == []
 
 
+@pytest.mark.parametrize("type_", ["pc_portable_gamer", "pc_bureau_gamer"])
+def test_db_no_windows_bundle_mismatch(db_path, type_):
+    # A PC sold with a Windows licence is a different offer from the same PC without one
+    mismatches = []
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        for store, column in STORE_COLUMNS.items():
+            rows = conn.execute(f"""
+                SELECT t.title, t.site_id, s.title AS store_title, s.site_id AS store_site_id
+                FROM matched_{type_} m
+                JOIN tunisianet_{type_} t ON t.link = m.linktunisianet
+                JOIN {store}_{type_} s ON s.link = m.{column}""").fetchall()
+            for row in rows:
+                tunisianet = {"title": row["title"], "site_id": row["site_id"]}
+                other = {"title": row["store_title"], "site_id": row["store_site_id"]}
+                if ProductMatching.windows_bundle(tunisianet) != ProductMatching.windows_bundle(other):
+                    mismatches.append((row["site_id"], row["store_site_id"]))
+    assert mismatches == []
+
+
+# The summer-2025 snapshot as first committed. tunicompare.db is byte-identical from 2f9c1ad to this commit
+# (on main), and only the matched_* tables may change after it. Comparing against HEAD instead would compare a
+# committed rebuild with itself.
+SNAPSHOT_COMMIT = "8264fe5"
+
+
 @pytest.fixture
-def head_db(tmp_path):
-    shown = subprocess.run(["git", "show", "HEAD:tunicompare.db"], cwd=REPO_ROOT, capture_output=True)
+def snapshot_db(tmp_path):
+    shown = subprocess.run(["git", "show", f"{SNAPSHOT_COMMIT}:tunicompare.db"], cwd=REPO_ROOT, capture_output=True)
     if shown.returncode != 0:
-        pytest.skip("no tunicompare.db in git HEAD")
-    path = tmp_path / "head.db"
+        pytest.skip(f"tunicompare.db not available at {SNAPSHOT_COMMIT}")
+    path = tmp_path / "snapshot.db"
     path.write_bytes(shown.stdout)
     return path
 
@@ -100,9 +182,9 @@ def snapshot(path, table):
         return conn.execute(f"SELECT link, title, price FROM {table} ORDER BY link").fetchall()
 
 
-def test_snapshot_prices_unchanged(db_path, head_db):
+def test_snapshot_prices_unchanged(db_path, snapshot_db):
     # The prices are the summer-2025 snapshot: rebuilding the pairings must not touch them
     for site in SITES:
         for type_ in TYPES:
             table = f"{site}_{type_}"
-            assert snapshot(db_path, table) == snapshot(head_db, table), table
+            assert snapshot(db_path, table) == snapshot(snapshot_db, table), table
